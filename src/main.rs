@@ -1,15 +1,18 @@
+mod config;
+
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
+use tokio::io;
 
 async fn hello() -> impl Responder {
     HttpResponse::Ok().body("Hello, World!")
 }
 
 #[tokio::main]
-async fn main() -> std::io::Result<()> {
-    config::load_config();
+async fn main() -> io::Result<()> {
+    let config = config::load_config("./config.json").await;
 
     HttpServer::new(|| App::new().route("/hello", web::get().to(hello)))
-        .bind(("127.0.0.1", 8080))?
+        .bind((config.server.host.clone(), config.server.port))?
         .run()
         .await
 }
