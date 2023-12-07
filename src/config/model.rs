@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Config {
     #[serde(default = "default_server")]
     pub server: ServerConfig,
@@ -12,49 +12,49 @@ pub struct Config {
     pub routes: HashMap<String, RouteConfig>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ServerConfig {
     pub host: String,
     pub port: u16,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct DatabaseConfig {
     pub connections: HashMap<String, DatabaseConnectionConfig>,
     pub schemas: HashMap<String, DatabaseSchemaConfig>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(tag = "driver")]
 pub enum DatabaseConnectionConfig {
     SQLite3 { database: String },
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct DatabaseSchemaConfig {
     pub connection: String,
     pub table_prefix: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct AuthenticationConfig {
     pub database: String,
     pub defaults: AuthenticationDefaultsConfig,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct AuthenticationDefaultsConfig {
     pub roles: Vec<String>,
     pub users: HashMap<String, AuthenticationDefaultUserConfig>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct AuthenticationDefaultUserConfig {
     pub default_password: Option<String>,
     pub roles: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(tag = "handler")]
 pub enum RouteConfig {
     Redirect {
@@ -85,13 +85,13 @@ pub enum RouteConfig {
     },
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct RoutePermissions {
     pub read: RoutePermissionState,
     pub write: RoutePermissionState,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(untagged)]
 pub enum RoutePermissionState {
     Global(bool),
