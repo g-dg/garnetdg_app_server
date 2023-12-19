@@ -1,10 +1,9 @@
 use super::DbDriver;
-use crate::config::model::DatabaseConnectionConfig;
+use crate::config::{DatabaseConnectionConfig, DatabaseSchemaConfig};
 
 use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
 
-#[derive(Debug)]
 pub struct SQLite3Connection {
     pool: Pool<SqliteConnectionManager>,
 }
@@ -22,15 +21,15 @@ impl DbDriver for SQLite3Connection {
 
     fn key_value_get(
         &self,
-        schema_config: &crate::config::model::DatabaseSchemaConfig,
+        schema_config: &DatabaseSchemaConfig,
         key: &Vec<&str>,
-    ) -> String {
+    ) -> Option<String> {
         todo!()
     }
 
     fn key_value_set(
         &self,
-        schema_config: &crate::config::model::DatabaseSchemaConfig,
+        schema_config: &DatabaseSchemaConfig,
         key: &Vec<&str>,
         value: &str,
     ) {

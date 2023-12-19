@@ -3,9 +3,9 @@ pub mod drivers;
 use std::collections::HashMap;
 
 use self::drivers::DbConnection;
-use crate::config::model::{DatabaseConfig, DatabaseSchemaConfig};
+use crate::config::{DatabaseConfig, DatabaseSchemaConfig};
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct DbSchema {
     config: DatabaseSchemaConfig,
     connection: DbConnection,
