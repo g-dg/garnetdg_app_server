@@ -13,7 +13,7 @@ impl DbDriver for SQLite3Connection {
         match config {
             DatabaseConnectionConfig::SQLite3 { database } => {
                 let manager = SqliteConnectionManager::file(database);
-                let pool = r2d2::Pool::new(manager).unwrap();
+                let pool = r2d2::Pool::new(manager).expect("Could not connect to SQLite3 database");
                 Self { pool }
             }
         }
@@ -27,12 +27,7 @@ impl DbDriver for SQLite3Connection {
         todo!()
     }
 
-    fn key_value_set(
-        &self,
-        schema_config: &DatabaseSchemaConfig,
-        key: &Vec<&str>,
-        value: &str,
-    ) {
+    fn key_value_set(&self, schema_config: &DatabaseSchemaConfig, key: &Vec<&str>, value: &str) {
         todo!()
     }
 }

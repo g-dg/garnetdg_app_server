@@ -34,7 +34,8 @@ impl Config {
                 }
             }
         };
-        let mut config: Config = serde_json::from_str(contents.as_str()).unwrap();
+        let mut config: Config =
+            serde_json::from_str(contents.as_str()).expect("Failed to parse config file");
 
         let args: Vec<String> = env::args().collect();
         let port_arg: Option<u16> = args.get(1).and_then(|x| x.parse().ok());

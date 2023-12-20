@@ -5,7 +5,11 @@ use crate::config::{DatabaseConnectionConfig, DatabaseSchemaConfig};
 
 pub trait DbDriver {
     fn new(config: &DatabaseConnectionConfig) -> Self;
-    fn key_value_get(&self, schema_config: &DatabaseSchemaConfig, key: &Vec<&str>) -> Option<String>;
+    fn key_value_get(
+        &self,
+        schema_config: &DatabaseSchemaConfig,
+        key: &Vec<&str>,
+    ) -> Option<String>;
     fn key_value_set(&self, schema_config: &DatabaseSchemaConfig, key: &Vec<&str>, value: &str);
 }
 
@@ -22,7 +26,11 @@ impl Clone for DbConnection {
 
 impl DbConnection {
     // gets the value for a key
-    pub fn key_value_get(&self, schema_config: &DatabaseSchemaConfig, key: &Vec<&str>) -> Option<String> {
+    pub fn key_value_get(
+        &self,
+        schema_config: &DatabaseSchemaConfig,
+        key: &Vec<&str>,
+    ) -> Option<String> {
         match self {
             DbConnection::SQLite3(connection) => connection.key_value_get(schema_config, key),
         }
