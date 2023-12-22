@@ -1,3 +1,5 @@
+//! Handles the basic application lifecycle
+
 use std::{
     collections::{HashMap, VecDeque},
     future::Future,
@@ -8,20 +10,28 @@ use crate::{
     auth::Auth,
     config::{Config, MessageQueueConfig, RoutePermissions},
     database::DbSchema,
+    message_queue::{MessageID, MessageQueue},
 };
 
+/// Represents the application
 pub struct Application {
+    /// App data
     pub app_data: AppData,
+    /// Queue of functions to run at application shutdown
     shutdown_queue: VecDeque<ShutdownFunction>,
 }
 
+/// Contains the application data that is passed to each endpoint
 #[derive(Clone)]
 pub struct AppData {
+    /// Hashmap of database schemas
     pub database_schemas: HashMap<String, DbSchema>,
+    /// Authentication system
     pub auth: Option<Auth>,
 }
 
 impl Application {
+    /// Builds the application
     pub async fn build(config: &Config) -> Self {
         let mut shutdown_queue = VecDeque::new();
 
@@ -52,6 +62,8 @@ impl Application {
         }
     }
 
+    /// Shuts down the application
+    /// The application cannot be accessed after this is run
     pub async fn stop(mut self) {
         while let Some(f) = self.shutdown_queue.pop_front() {
             match f {
@@ -67,6 +79,7 @@ enum ShutdownFunction {
     Future(Pin<Box<dyn Future<Output = ()>>>),
 }
 
+/// Represents an application endpoint type
 pub enum ApplicationEndpoint {
     Redirect {
         target: String,

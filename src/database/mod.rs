@@ -1,3 +1,5 @@
+//! Database module
+
 pub mod drivers;
 
 use std::collections::HashMap;
@@ -5,6 +7,7 @@ use std::collections::HashMap;
 use self::drivers::DbConnection;
 use crate::config::{DatabaseConfig, DatabaseSchemaConfig};
 
+/// Database schema
 #[derive(Clone)]
 pub struct DbSchema {
     config: DatabaseSchemaConfig,
@@ -12,7 +15,7 @@ pub struct DbSchema {
 }
 
 impl DbSchema {
-    // connects to all databases specified in the config
+    /// Connects to all databases specified in the provided config
     pub fn connect_all<'a>(config: &'a DatabaseConfig) -> HashMap<String, DbSchema> {
         // create database connections
         let connections: HashMap<&str, DbConnection> = config
@@ -21,7 +24,7 @@ impl DbSchema {
             .map(|(connection_name, connection_config)| {
                 (
                     connection_name.as_str(),
-                    drivers::connect_database(connection_config),
+                    DbConnection::new(connection_config),
                 )
             })
             .collect();
@@ -46,10 +49,12 @@ impl DbSchema {
         schemas
     }
 
+    /// Gets the value of the provided key
     pub fn key_value_get(&self, key: &Vec<&str>) -> Option<String> {
         self.connection.key_value_get(&self.config, key)
     }
 
+    /// Sets the value of the provided key
     pub fn key_value_set(&self, key: &Vec<&str>, value: &str) {
         self.connection.key_value_set(&self.config, key, value)
     }

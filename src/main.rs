@@ -1,3 +1,5 @@
+//! Generic web application server that allows for more server-client and client-client interaction in a secure way
+
 mod application;
 mod config;
 mod database;
@@ -21,8 +23,8 @@ async fn main() -> io::Result<()> {
     let application = Application::build(&config).await;
 
     let result = HttpServer::new(move || App::new().route("/", web::get().to(hello)))
-    .bind((config.server.host.clone(), config.server.port))?
-    .run()
+        .bind((config.server.host.clone(), config.server.port))?
+        .run()
         .await;
 
     application.stop().await;

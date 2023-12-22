@@ -1,3 +1,5 @@
+//! SQLite3 database driver
+
 use super::DbDriver;
 use crate::config::{DatabaseConnectionConfig, DatabaseSchemaConfig};
 

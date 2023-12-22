@@ -1,22 +1,28 @@
+//! Configuration parser and models
+
 use std::collections::HashMap;
 use std::{env, io::ErrorKind};
 
 use serde::{Deserialize, Serialize};
 use tokio::fs;
 
-#[derive(Serialize, Deserialize, Clone)]
+/// Object containing the application config
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Config {
     #[serde(default = "default_server")]
     pub server: ServerConfig,
     #[serde(default = "default_database")]
     pub databases: DatabaseConfig,
+    pub message_queues: HashMap<String, MessageQueueConfig>,
     pub authentication: Option<AuthenticationConfig>,
     #[serde(default = "default_route")]
     pub routes: HashMap<String, RouteConfig>,
 }
 
 impl Config {
+    /// Loads the application config from the provided file
     pub async fn load(filename: &str) -> Config {
+        //TODO: allow reading from string?
         let read_result = fs::read_to_string(filename).await;
         let contents = match read_result {
             Ok(value) => {
@@ -48,49 +54,65 @@ impl Config {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+/// Server configuration
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ServerConfig {
     pub host: String,
     pub port: u16,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+/// Database configuration
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct DatabaseConfig {
     pub connections: HashMap<String, DatabaseConnectionConfig>,
     pub schemas: HashMap<String, DatabaseSchemaConfig>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+/// Database connection configuration
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(tag = "driver")]
 pub enum DatabaseConnectionConfig {
     SQLite3 { database: String },
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+/// Database schema configuration
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct DatabaseSchemaConfig {
     pub connection: String,
     pub table_prefix: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+/// Message queue configuration
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct MessageQueueConfig {
+    pub database_schema: Option<String>,
+    pub message_expiry: Option<u64>,
+    pub message_limit: Option<u64>,
+}
+
+/// Authentication configuration
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct AuthenticationConfig {
     pub database: String,
     pub defaults: AuthenticationDefaultsConfig,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+/// Authentication defaults configuration
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct AuthenticationDefaultsConfig {
     pub roles: Vec<String>,
     pub users: HashMap<String, AuthenticationDefaultUserConfig>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+/// Authentication default user configuration
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct AuthenticationDefaultUserConfig {
     pub default_password: Option<String>,
     pub roles: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+/// Route configuration
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(tag = "handler")]
 pub enum RouteConfig {
     Redirect {
@@ -121,19 +143,22 @@ pub enum RouteConfig {
     },
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+/// Route permissions configuration
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct RoutePermissions {
-    pub read: RoutePermissionState,
-    pub write: RoutePermissionState,
+    pub read: RoutePermissionValue,
+    pub write: RoutePermissionValue,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+/// Route permission value
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(untagged)]
-pub enum RoutePermissionState {
+pub enum RoutePermissionValue {
     Global(bool),
     Groups(Vec<String>),
 }
 
+/// Creates the default server configuration
 fn default_server() -> ServerConfig {
     ServerConfig {
         host: String::from("0.0.0.0"),
@@ -141,6 +166,7 @@ fn default_server() -> ServerConfig {
     }
 }
 
+/// Creates the default database configuration
 fn default_database() -> DatabaseConfig {
     DatabaseConfig {
         connections: HashMap::new(),
@@ -148,6 +174,7 @@ fn default_database() -> DatabaseConfig {
     }
 }
 
+/// Creates the default route configuration
 fn default_route() -> HashMap<String, RouteConfig> {
     let mut routes = HashMap::<String, RouteConfig>::new();
     routes.insert(
@@ -161,9 +188,10 @@ fn default_route() -> HashMap<String, RouteConfig> {
     routes
 }
 
+/// Defines read-only route permission for default routes
 fn default_readonly_permissions() -> RoutePermissions {
     RoutePermissions {
-        read: RoutePermissionState::Global(true),
-        write: RoutePermissionState::Global(false),
+        read: RoutePermissionValue::Global(true),
+        write: RoutePermissionValue::Global(false),
     }
 }
