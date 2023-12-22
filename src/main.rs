@@ -3,6 +3,7 @@
 mod application;
 mod config;
 mod database;
+mod message_queue;
 
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 use application::Application;
