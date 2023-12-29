@@ -21,8 +21,7 @@ pub struct Config {
 
 impl Config {
     /// Loads the application config from the provided file
-    pub async fn load(filename: &str) -> Config {
-        //TODO: allow reading from string?
+    pub async fn load_file(filename: &str) -> Config {
         let read_result = fs::read_to_string(filename).await;
         let contents = match read_result {
             Ok(value) => {
@@ -40,8 +39,15 @@ impl Config {
                 }
             }
         };
+
+        Self::load(&contents)
+    }
+
+    /// Loads the application config from the provided string.
+    /// Uses first and second command line arguments as port and host overrides.
+    pub fn load(config_json: &str) -> Config {
         let mut config: Config =
-            serde_json::from_str(contents.as_str()).expect("Failed to parse config file");
+            serde_json::from_str(config_json).expect("Failed to parse config file");
 
         let args: Vec<String> = env::args().collect();
         let port_arg: Option<u16> = args.get(1).and_then(|x| x.parse().ok());

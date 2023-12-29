@@ -19,7 +19,7 @@ async fn main() -> io::Result<()> {
     env_logger::init();
 
     // load config
-    let config = Config::load("./config.json").await;
+    let config = Config::load_file("./config.json").await;
 
     let application = Application::build(&config).await;
 
