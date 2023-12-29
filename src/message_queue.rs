@@ -16,7 +16,7 @@ use crate::config::MessageQueueConfig;
 
 /// Message queue
 #[derive(Clone, Debug)]
-pub struct MessageQueue<T: Clone + Send + 'static> {
+pub struct MessageQueue<T: Send + Sync + 'static> {
     /// Configuration object
     config: MessageQueueConfig,
     /// MPSC channel used to send requests to the message queue thread
@@ -25,7 +25,7 @@ pub struct MessageQueue<T: Clone + Send + 'static> {
     join_handle: Arc<Mutex<Option<JoinHandle<()>>>>,
 }
 
-impl<T: Clone + Send + 'static> MessageQueue<T> {
+impl<T: Send + Sync + 'static> MessageQueue<T> {
     /// Sets up a new message queue.
     /// Once the message queue is done being used, the `shutdown` function must be called.
     pub async fn new(config: MessageQueueConfig, name: Option<&str>) -> Self {
@@ -94,7 +94,7 @@ impl<T: Clone + Send + 'static> MessageQueue<T> {
                                 message_id,
                             };
 
-                            Self::send_message_recursive(&mut subscription_tree, &path, message);
+                            Self::send_message_recursive(&mut subscription_tree, &path, Arc::new(message));
 
                             //TODO: cleanup older messages according to config settings
                             //TODO: also clean up any empty nodes (i.e. nodes that have no subscriptions and no non-expired messages)
@@ -132,7 +132,7 @@ impl<T: Clone + Send + 'static> MessageQueue<T> {
     fn send_message_recursive(
         subscription_tree: &mut SubscriptionTreeNode<T>,
         path: &[String],
-        message: Message<T>,
+        message: Arc<Message<T>>,
     ) {
         // depth-first recursion
         if path.len() > 0 {
@@ -145,7 +145,6 @@ impl<T: Clone + Send + 'static> MessageQueue<T> {
         }
 
         // save message
-        // TODO: use reference counting so each level of the tree doesn't have a cloned copy
         subscription_tree.messages.push_back(message.clone());
 
         // send messages to subscriptions
@@ -173,7 +172,7 @@ impl<T: Clone + Send + 'static> MessageQueue<T> {
         &self,
         path: Vec<String>,
         last_message_id: Option<MessageID>,
-    ) -> Vec<Message<T>> {
+    ) -> Vec<Arc<Message<T>>> {
         let (tx, mut rx) = mpsc::unbounded_channel();
 
         self.message_channel
@@ -199,7 +198,7 @@ impl<T: Clone + Send + 'static> MessageQueue<T> {
         &self,
         path: Vec<String>,
         last_message_id: Option<MessageID>,
-    ) -> Vec<Message<T>> {
+    ) -> Vec<Arc<Message<T>>> {
         let (tx, mut rx) = mpsc::unbounded_channel();
 
         self.message_channel
@@ -268,8 +267,8 @@ impl<T: Clone + Send + 'static> MessageQueue<T> {
 }
 
 /// Used to store a message and its associated metadata
-#[derive(Clone, Debug)]
-pub struct Message<T: Clone> {
+#[derive(Debug)]
+pub struct Message<T> {
     /// The message
     pub message: T,
     /// The path of the message
@@ -281,17 +280,17 @@ pub struct Message<T: Clone> {
 }
 
 /// Enum of requests sent to the message queue thread
-enum MessageQueueRequest<T: Clone> {
+enum MessageQueueRequest<T> {
     /// Request to get any sent messages (does not wait)
     Get {
         path: Vec<String>,
-        response_channel: UnboundedSender<Vec<Message<T>>>,
+        response_channel: UnboundedSender<Vec<Arc<Message<T>>>>,
         last_message_id: Option<MessageID>,
     },
     /// Request to wait for a new message or return missed messages
     Wait {
         path: Vec<String>,
-        response_channel: UnboundedSender<Vec<Message<T>>>,
+        response_channel: UnboundedSender<Vec<Arc<Message<T>>>>,
         last_message_id: Option<MessageID>,
     },
     /// Request to send a message
@@ -308,15 +307,15 @@ enum MessageQueueRequest<T: Clone> {
 
 /// Tree of subscriptions and sent messages
 #[derive(Debug)]
-struct SubscriptionTreeNode<T: Clone> {
+struct SubscriptionTreeNode<T> {
     /// Hashmap of path descendents
     descendents: HashMap<String, SubscriptionTreeNode<T>>,
     /// List of subscriptions to this path
     subscriptions: Vec<Subscription<T>>,
     /// Queue of the most recently sent messages
-    messages: VecDeque<Message<T>>,
+    messages: VecDeque<Arc<Message<T>>>,
 }
-impl<T: Clone> SubscriptionTreeNode<T> {
+impl<T> SubscriptionTreeNode<T> {
     /// Creates a new subscription tree node.
     fn new() -> SubscriptionTreeNode<T> {
         SubscriptionTreeNode::<T> {
@@ -357,7 +356,7 @@ impl<T: Clone> SubscriptionTreeNode<T> {
         &self,
         path: &Vec<String>,
         last_message_id: &Option<MessageID>,
-    ) -> Vec<Message<T>> {
+    ) -> Vec<Arc<Message<T>>> {
         let empty = VecDeque::new();
         let all_messages = match self.get_node(&path) {
             Some(node) => &node.messages,
@@ -365,7 +364,7 @@ impl<T: Clone> SubscriptionTreeNode<T> {
         };
 
         let mut found_message = false;
-        let messages: Vec<Message<T>> = if let Some(last_message_id) = last_message_id {
+        let messages: Vec<Arc<Message<T>>> = if let Some(last_message_id) = last_message_id {
             // message list is a queue with more recent messages at the back
             all_messages
                 .iter()
@@ -399,8 +398,8 @@ impl<T: Clone> SubscriptionTreeNode<T> {
 
 /// Contains a MPSC channel to reply when a message is sent
 #[derive(Clone, Debug)]
-struct Subscription<T: Clone> {
-    channel: UnboundedSender<Vec<Message<T>>>,
+struct Subscription<T> {
+    channel: UnboundedSender<Vec<Arc<Message<T>>>>,
 }
 
 /// Handles message ID creation, storage and formatting
