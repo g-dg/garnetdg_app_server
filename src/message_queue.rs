@@ -368,23 +368,18 @@ impl<T> SubscriptionTreeNode<T> {
             // message list is a queue with more recent messages at the back
             all_messages
                 .iter()
-                .rev()
                 .filter(|msg| {
                     if found_message {
-                        // we've already found the last sent message, we don't want to return older ones
-                        false
+                        // we've found the last message, return everything since then
+                        true
                     } else {
                         if msg.message_id == *last_message_id {
                             found_message = true;
-                            // we're on the last sent message, don't return it
-                            false
-                        } else {
-                            // else we return the message
-                            true
                         }
+                        // don't return messages until found
+                        false
                     }
                 })
-                .rev()
                 .map(|msg| (*msg).clone())
                 .collect()
         } else {
