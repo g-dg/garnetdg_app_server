@@ -50,9 +50,6 @@ impl Application {
             None => None,
         };
 
-        let database_schemas = database::connect_schemas(&config.databases);
-
-
         Self {
             app_data: AppData {
                 database_schemas,
