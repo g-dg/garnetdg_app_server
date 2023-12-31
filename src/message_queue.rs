@@ -363,28 +363,36 @@ impl<T> SubscriptionTreeNode<T> {
             None => &empty,
         };
 
-        let mut found_message = false;
         let messages: Vec<Arc<Message<T>>> = if let Some(last_message_id) = last_message_id {
+            let mut found_message = false;
+
             // message list is a queue with more recent messages at the back
             all_messages
                 .iter()
+                .rev()
                 .filter(|msg| {
                     if found_message {
-                        // we've found the last message, return everything since then
-                        true
+                        // we've found the last message, don't return earlier messages
+                        false
                     } else {
                         if msg.message_id == *last_message_id {
                             found_message = true;
+                            // we're on the last message, don't return it
+                            false
+                        } else {
+                            // return most recent messages
+                            true
                         }
-                        // don't return messages until found
-                        false
                     }
                 })
-                .map(|msg| (*msg).clone())
+                .collect::<Vec<_>>() // need to collect into new vec since otherwise .rev() won't actually reverse the order the filter is called
+                .into_iter()
+                .rev()
+                .map(|msg| msg.clone())
                 .collect()
         } else {
             // return all messages
-            all_messages.iter().map(|msg| (*msg).clone()).collect()
+            all_messages.iter().map(|msg| msg.clone()).collect()
         };
 
         messages
