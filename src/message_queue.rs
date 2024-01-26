@@ -12,13 +12,17 @@ use rand::Rng;
 use serde::{de::Visitor, Deserialize, Serialize};
 use tokio::sync::mpsc::{self, UnboundedSender};
 
-use crate::config::MessageQueueConfig;
+use crate::{config::MessageQueueConfig, database::DbSchema};
 
 /// Message queue
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct MessageQueue<T: Send + Sync + 'static> {
+    /// Name of the message queue
+    name: String,
     /// Configuration object
     config: MessageQueueConfig,
+    /// Database schema used for storing data
+    database: Option<DbSchema>,
     /// MPSC channel used to send requests to the message queue thread
     message_channel: UnboundedSender<MessageQueueRequest<T>>,
     /// Join handle of message queue thread
@@ -28,13 +32,10 @@ pub struct MessageQueue<T: Send + Sync + 'static> {
 impl<T: Send + Sync + 'static> MessageQueue<T> {
     /// Sets up a new message queue.
     /// Once the message queue is done being used, the `shutdown` function must be called.
-    pub async fn new(config: MessageQueueConfig, name: Option<&str>) -> Self {
+    pub async fn new(name: &str, config: MessageQueueConfig, database: Option<DbSchema>) -> Self {
         let (spawn_tx, mut spawn_rx) = mpsc::unbounded_channel();
 
-        let thread_builder = thread::Builder::new().name(match name {
-            Some(name) => String::from(name),
-            None => String::from("Message Queue"),
-        });
+        let thread_builder = thread::Builder::new().name(String::from(name));
 
         let join_handle = thread_builder
             .spawn(move || {
@@ -122,7 +123,9 @@ impl<T: Send + Sync + 'static> MessageQueue<T> {
             .expect("Error occurred while receiving transmitter from message queue thread");
 
         Self {
+            name: String::from(name),
             config,
+            database,
             message_channel: tx,
             join_handle: Arc::new(Mutex::new(Some(join_handle))),
         }
