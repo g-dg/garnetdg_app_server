@@ -1,9 +1,12 @@
 //! Generic web application server that allows for more server-client and client-client interaction in a secure way
 
-mod application;
-mod config;
-mod database;
-mod message_queue;
+pub mod application;
+pub mod auth;
+pub mod config;
+pub mod database;
+pub mod endpoints;
+pub mod key_value_store;
+pub mod message_queue;
 
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 use application::Application;

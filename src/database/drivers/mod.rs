@@ -3,17 +3,25 @@
 pub mod sqlite3;
 
 use self::sqlite3::SQLite3Connection;
-use crate::config::{DatabaseConnectionConfig, DatabaseSchemaConfig};
+use crate::config::DatabaseConnectionConfig;
 
 /// Trait for a database driver
 pub trait DbDriver {
     fn new(config: &DatabaseConnectionConfig) -> Self;
+    fn schema_create_key_value(&self, table_prefix: Option<&str>, store_name: &str);
     fn key_value_get(
         &self,
-        schema_config: &DatabaseSchemaConfig,
-        key: &Vec<&str>,
+        table_prefix: Option<&str>,
+        store_name: &str,
+        key: &[&str],
     ) -> Option<String>;
-    fn key_value_set(&self, schema_config: &DatabaseSchemaConfig, key: &Vec<&str>, value: &str);
+    fn key_value_set(
+        &self,
+        table_prefix: Option<&str>,
+        store_name: &str,
+        key: &[&str],
+        value: &str,
+    );
 }
 
 /// A database connection
@@ -38,27 +46,40 @@ impl DbConnection {
         }
     }
 
+    /// Creates a key-value schema
+    pub fn schema_create_key_value(&self, table_prefix: Option<&str>, name: &str) {
+        match self {
+            DbConnection::SQLite3(connection) => {
+                connection.schema_create_key_value(table_prefix, name)
+            }
+        }
+    }
+
     /// Gets the value for a key
     pub fn key_value_get(
         &self,
-        schema_config: &DatabaseSchemaConfig,
-        key: &Vec<&str>,
+        table_prefix: Option<&str>,
+        store_name: &str,
+        key: &[&str],
     ) -> Option<String> {
         match self {
-            DbConnection::SQLite3(connection) => connection.key_value_get(schema_config, key),
+            DbConnection::SQLite3(connection) => {
+                connection.key_value_get(table_prefix, store_name, key)
+            }
         }
     }
 
     /// Sets the value on a key
     pub fn key_value_set(
         &self,
-        schema_config: &DatabaseSchemaConfig,
-        key: &Vec<&str>,
+        table_prefix: Option<&str>,
+        store_name: &str,
+        key: &[&str],
         value: &str,
     ) {
         match self {
             DbConnection::SQLite3(connection) => {
-                connection.key_value_set(schema_config, key, value)
+                connection.key_value_set(table_prefix, store_name, key, value)
             }
         }
     }

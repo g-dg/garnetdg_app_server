@@ -49,13 +49,38 @@ impl DbSchema {
         schemas
     }
 
+    pub fn schema_create_key_value(&self, store_name: &str) {
+        self.connection.schema_create_key_value(
+            self.config
+                .table_prefix
+                .as_ref()
+                .and_then(|x| Some(x.as_str())),
+            store_name,
+        )
+    }
+
     /// Gets the value of the provided key
-    pub fn key_value_get(&self, key: &Vec<&str>) -> Option<String> {
-        self.connection.key_value_get(&self.config, key)
+    pub fn key_value_get(&self, store_name: &str, key: &Vec<&str>) -> Option<String> {
+        self.connection.key_value_get(
+            self.config
+                .table_prefix
+                .as_ref()
+                .and_then(|x| Some(x.as_str())),
+            store_name,
+            key,
+        )
     }
 
     /// Sets the value of the provided key
-    pub fn key_value_set(&self, key: &Vec<&str>, value: &str) {
-        self.connection.key_value_set(&self.config, key, value)
+    pub fn key_value_set(&self, store_name: &str, key: &Vec<&str>, value: &str) {
+        self.connection.key_value_set(
+            self.config
+                .table_prefix
+                .as_ref()
+                .and_then(|x| Some(x.as_str())),
+            store_name,
+            key,
+            value,
+        )
     }
 }
