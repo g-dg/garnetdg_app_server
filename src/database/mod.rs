@@ -60,7 +60,7 @@ impl DbSchema {
     }
 
     /// Gets the value of the provided key
-    pub fn key_value_get(&self, store_name: &str, key: &Vec<&str>) -> Option<String> {
+    pub fn key_value_get(&self, store_name: &str, key: &[&str]) -> Option<String> {
         self.connection.key_value_get(
             self.config
                 .table_prefix
@@ -72,7 +72,7 @@ impl DbSchema {
     }
 
     /// Sets the value of the provided key
-    pub fn key_value_set(&self, store_name: &str, key: &Vec<&str>, value: &str) {
+    pub fn key_value_set(&self, store_name: &str, key: &[&str], value: &str) {
         self.connection.key_value_set(
             self.config
                 .table_prefix

@@ -34,7 +34,7 @@ impl<T: Serialize + DeserializeOwned> KeyValueStore<T> {
     }
 
     /// Gets a the value of a key
-    pub fn get(&self, key: Vec<&str>) -> Option<T> {
+    pub fn get(&self, key: &[&str]) -> Option<T> {
         if let Some(database) = self.database.clone() {
             database.key_value_get(&self.name, &key).and_then(|result| {
                 serde_json::from_str(&result).expect("Failed to convert key value from JSON")
@@ -46,7 +46,7 @@ impl<T: Serialize + DeserializeOwned> KeyValueStore<T> {
     }
 
     /// Sets the value of a key
-    pub fn set(&self, key: Vec<&str>, value: T) {
+    pub fn set(&self, key: &[&str], value: T) {
         if let Some(database) = self.database.clone() {
             database.key_value_set(
                 &self.name,
