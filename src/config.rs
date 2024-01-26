@@ -14,6 +14,7 @@ pub struct Config {
     #[serde(default = "default_database")]
     pub databases: DatabaseConfig,
     pub message_queues: HashMap<String, MessageQueueConfig>,
+    pub key_value_stores: HashMap<String, KeyValueConfig>,
     pub authentication: Option<AuthenticationConfig>,
     #[serde(default = "default_route")]
     pub routes: HashMap<String, RouteConfig>,
@@ -96,10 +97,15 @@ pub struct MessageQueueConfig {
     pub message_limit: Option<u64>,
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct KeyValueConfig {
+    pub database_schema: Option<String>,
+}
+
 /// Authentication configuration
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct AuthenticationConfig {
-    pub database: String,
+    pub database_schema: String,
     pub defaults: AuthenticationDefaultsConfig,
 }
 
@@ -134,12 +140,12 @@ pub enum RouteConfig {
 
     KeyValue {
         permissions: RoutePermissions,
-        database_schema: Option<String>,
+        key_value_store: Option<String>,
     },
 
     MessageQueue {
         permissions: RoutePermissions,
-        database_schema: Option<String>,
+        message_queue: Option<String>,
     },
 
     Auth,
