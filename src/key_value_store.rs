@@ -1,3 +1,5 @@
+//! Key-value store
+
 use std::marker::PhantomData;
 
 use serde::{de::DeserializeOwned, Serialize};
@@ -38,7 +40,8 @@ impl<T: Serialize + DeserializeOwned> KeyValueStore<T> {
                 serde_json::from_str(&result).expect("Failed to convert key value from JSON")
             })
         } else {
-            todo!()
+            //TODO: in-memory key-value store
+            None
         }
     }
 
@@ -51,7 +54,7 @@ impl<T: Serialize + DeserializeOwned> KeyValueStore<T> {
                 &serde_json::to_string(&value).expect("Failed to convert key value to JSON"),
             )
         } else {
-            todo!()
+            //TODO: in-memory key-value store
         }
     }
 }

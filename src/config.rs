@@ -9,13 +9,19 @@ use tokio::fs;
 /// Object containing the application config
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Config {
+    /// Basic server configuration
     #[serde(default = "default_server")]
     pub server: ServerConfig,
+    /// Database configuration
     #[serde(default = "default_database")]
     pub databases: DatabaseConfig,
-    pub message_queues: HashMap<String, MessageQueueConfig>,
+    /// Key-value store configuration
     pub key_value_stores: HashMap<String, KeyValueConfig>,
+    /// Message queue configuration
+    pub message_queues: HashMap<String, MessageQueueConfig>,
+    /// Authentication configuration
     pub authentication: Option<AuthenticationConfig>,
+    /// Route configuration
     #[serde(default = "default_route")]
     pub routes: HashMap<String, RouteConfig>,
 }
@@ -64,14 +70,18 @@ impl Config {
 /// Server configuration
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ServerConfig {
+    /// Server host (0.0.0.0 for all hosts, 127.0.0.1 for localhost)
     pub host: String,
+    /// Server port
     pub port: u16,
 }
 
 /// Database configuration
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct DatabaseConfig {
+    /// Database connection configuration
     pub connections: HashMap<String, DatabaseConnectionConfig>,
+    /// Database schema configuration
     pub schemas: HashMap<String, DatabaseSchemaConfig>,
 }
 
@@ -79,47 +89,61 @@ pub struct DatabaseConfig {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(tag = "driver")]
 pub enum DatabaseConnectionConfig {
+    /// Sqlite3 database driver
     SQLite3 { database: String },
 }
 
 /// Database schema configuration
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct DatabaseSchemaConfig {
+    /// Database connection for the schema to use
     pub connection: String,
+    /// Optional table prefix for this schema
     pub table_prefix: Option<String>,
+}
+
+/// Key-value store configuration
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct KeyValueConfig {
+    /// Database schema to store keys and values (in-memory storage not yet supported)
+    pub database_schema: Option<String>,
 }
 
 /// Message queue configuration
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct MessageQueueConfig {
+    /// Database schema to store messages (not yet supported)
     pub database_schema: Option<String>,
+    /// Number of seconds before the message expires (not yet supported)
     pub message_expiry: Option<u64>,
+    /// Maximum number of messages per path (not yet supported)
     pub message_limit: Option<u64>,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct KeyValueConfig {
-    pub database_schema: Option<String>,
 }
 
 /// Authentication configuration
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct AuthenticationConfig {
+    /// Database schema to use for authentication
     pub database_schema: String,
+    /// Authentication default setup
     pub defaults: AuthenticationDefaultsConfig,
 }
 
 /// Authentication defaults configuration
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct AuthenticationDefaultsConfig {
+    /// List of default roles
     pub roles: Vec<String>,
+    /// Hashmap of default users
     pub users: HashMap<String, AuthenticationDefaultUserConfig>,
 }
 
 /// Authentication default user configuration
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct AuthenticationDefaultUserConfig {
+    /// Default user password
     pub default_password: Option<String>,
+    /// List of default user roles
     pub roles: Vec<String>,
 }
 
@@ -127,10 +151,12 @@ pub struct AuthenticationDefaultUserConfig {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(tag = "handler")]
 pub enum RouteConfig {
+    /// Simple redirect handler
     Redirect {
         redirect_target: String,
     },
 
+    /// Basic file handler
     File {
         #[serde(default = "default_readonly_permissions")]
         permissions: RoutePermissions,
@@ -138,18 +164,22 @@ pub enum RouteConfig {
         index_file: Option<String>,
     },
 
+    /// Key-value store
     KeyValue {
         permissions: RoutePermissions,
         key_value_store: Option<String>,
     },
 
+    /// Message queue
     MessageQueue {
         permissions: RoutePermissions,
         message_queue: Option<String>,
     },
 
+    /// Authentication endpoints
     Auth,
 
+    /// Authentication management endpoints
     AuthAdmin {
         permissions: RoutePermissions,
     },
@@ -158,7 +188,9 @@ pub enum RouteConfig {
 /// Route permissions configuration
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct RoutePermissions {
+    /// Read permissions
     pub read: RoutePermissionValue,
+    /// Write permissions
     pub write: RoutePermissionValue,
 }
 
@@ -166,8 +198,10 @@ pub struct RoutePermissions {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(untagged)]
 pub enum RoutePermissionValue {
+    /// Completely allow or deny permissions
     Global(bool),
-    Groups(Vec<String>),
+    /// Only allow the listed roles
+    Roles(Vec<String>),
 }
 
 /// Creates the default server configuration

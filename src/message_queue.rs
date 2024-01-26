@@ -1,4 +1,4 @@
-//! Message queue system
+//! Message queue
 
 use std::{
     collections::{HashMap, VecDeque},
@@ -97,6 +97,7 @@ impl<T: Send + Sync + 'static> MessageQueue<T> {
 
                             Self::send_message_recursive(&mut subscription_tree, &path, Arc::new(message));
 
+                            //TODO: optionally save messages in database
                             //TODO: cleanup older messages according to config settings
                             //TODO: also clean up any empty nodes (i.e. nodes that have no subscriptions and no non-expired messages)
                         }

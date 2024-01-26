@@ -1,3 +1,5 @@
+//! Key-value database operations
+
 use super::SQLite3Connection;
 
 use r2d2::PooledConnection;

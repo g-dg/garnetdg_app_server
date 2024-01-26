@@ -8,6 +8,7 @@ use crate::config::DatabaseConnectionConfig;
 use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
 
+/// SQLite3 database connection
 #[derive(Clone)]
 pub struct SQLite3Connection {
     pool: Pool<SqliteConnectionManager>,

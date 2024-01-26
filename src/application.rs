@@ -1,4 +1,4 @@
-//! Handles the basic application lifecycle
+//! Handles the application lifecycle
 
 use std::{
     collections::{HashMap, VecDeque},
@@ -101,6 +101,7 @@ pub enum ApplicationEndpoint {
     },
 }
 
+/// Enum for application shutdown functions
 enum ShutdownFunction {
     Closure(Box<dyn FnOnce() -> ()>),
     Future(Pin<Box<dyn Future<Output = ()>>>),

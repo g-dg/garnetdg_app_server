@@ -16,10 +16,12 @@ use application::Application;
 use config::Config;
 use tokio::io;
 
+/// Test endpoint
 async fn hello() -> impl Responder {
     HttpResponse::Ok().body("Hello, World!")
 }
 
+/// Application entry point
 #[tokio::main]
 async fn main() -> io::Result<()> {
     env_logger::init();
