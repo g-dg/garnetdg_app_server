@@ -152,9 +152,7 @@ pub struct AuthenticationDefaultUserConfig {
 #[serde(tag = "handler")]
 pub enum RouteConfig {
     /// Simple redirect handler
-    Redirect {
-        redirect_target: String,
-    },
+    Redirect { redirect_target: String },
 
     /// Basic file handler
     File {
@@ -180,9 +178,7 @@ pub enum RouteConfig {
     Auth,
 
     /// Authentication management endpoints
-    AuthAdmin {
-        permissions: RoutePermissions,
-    },
+    AuthAdmin { permissions: RoutePermissions },
 }
 
 /// Route permissions configuration
