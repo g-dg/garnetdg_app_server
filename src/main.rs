@@ -8,6 +8,9 @@ pub mod endpoints;
 pub mod key_value_store;
 pub mod message_queue;
 
+#[cfg(test)]
+mod tests;
+
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 use application::Application;
 use config::Config;
