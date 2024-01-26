@@ -6,7 +6,8 @@ CREATE TABLE IF NOT EXISTS "key_values" (
 	"key" TEXT NOT NULL,
 	"value" TEXT
 );
-CREATE UNIQUE INDEX IF NOT EXISTS "index_key_values__parent_id__key" ON "key_values" (IFNULL("parent_id", 0), "key");
+CREATE UNIQUE INDEX IF NOT EXISTS "index_key_values__ifnull_parent_id__key" ON "key_values" (IFNULL("parent_id", 0), "key");
+CREATE INDEX IF NOT EXISTS "index_key_values__parent_id__key" ON "key_values" ("parent_id", "key");
 
 
 -- Message queue storage
@@ -16,7 +17,8 @@ CREATE TABLE IF NOT EXISTS "message_paths" (
 	"parent_id" INTEGER REFERENCES "message_paths",
 	"name" TEXT NOT NULL,
 );
-CREATE UNIQUE INDEX IF NOT EXISTS "index_message_paths__parent_id__name" on "message_paths" (IFNULL("parent_id", 0), "name");
+CREATE UNIQUE INDEX IF NOT EXISTS "index_message_paths__ifnull_parent_id__name" on "message_paths" (IFNULL("parent_id", 0), "name");
+CREATE INDEX IF NOT EXISTS "index_message_paths__parent_id__name" on "message_paths" ("parent_id", "name");
 
 CREATE TABLE IF NOT EXISTS "messages" (
 	"id" INTEGER PRIMARY KEY NOT NULL,
