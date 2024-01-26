@@ -3,3 +3,5 @@
 /config.json
 /data
 /client
+
+/.vscode/launch.json
