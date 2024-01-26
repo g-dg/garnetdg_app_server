@@ -8,9 +8,10 @@ use std::{
 
 use crate::{
     auth::Auth,
-    config::{Config, MessageQueueConfig, RoutePermissions},
+    config::{Config, RoutePermissions},
     database::DbSchema,
-    message_queue::{MessageID, MessageQueue},
+    key_value_store::KeyValueStore,
+    message_queue::MessageQueue,
 };
 
 /// Represents the application
@@ -43,8 +44,8 @@ impl Application {
             Some(auth_config) => Some(Auth::new(
                 auth_config,
                 database_schemas
-                    .get(&auth_config.database)
-                    .expect("Authentication database schema not found")
+                    .get(&auth_config.database_schema)
+                    .expect("Authentication database schema not found in config")
                     .clone(),
             )),
             None => None,
@@ -71,11 +72,6 @@ impl Application {
     }
 }
 
-enum ShutdownFunction {
-    Closure(Box<dyn FnOnce() -> ()>),
-    Future(Pin<Box<dyn Future<Output = ()>>>),
-}
-
 /// Represents an application endpoint type
 pub enum ApplicationEndpoint {
     Redirect {
@@ -88,6 +84,7 @@ pub enum ApplicationEndpoint {
     },
     KeyValue {
         permissions: RoutePermissions,
+        key_value: KeyValueStore<String>,
         database_schema: DbSchema,
     },
     MessageQueue {
@@ -102,4 +99,9 @@ pub enum ApplicationEndpoint {
         permissions: RoutePermissions,
         database_schema: DbSchema,
     },
+}
+
+enum ShutdownFunction {
+    Closure(Box<dyn FnOnce() -> ()>),
+    Future(Pin<Box<dyn Future<Output = ()>>>),
 }
