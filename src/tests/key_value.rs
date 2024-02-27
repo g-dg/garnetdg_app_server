@@ -58,8 +58,21 @@ pub async fn newly_created_store_is_empty() {
     let store = create_key_value_store::<String>(None).await;
 
     let result = store.get(&[]);
-    assert_eq!(result, None, "New key-value store must have an empty root");
+    assert_eq!(
+        result, None,
+        "New key-value store must have a root with no value"
+    );
 
     let result = store.get(&["test"]);
-    assert_eq!(result, None, "New key-value store must return None for children");
+    assert_eq!(
+        result, None,
+        "New key-value store must not return a value for a child"
+    );
+
+    let result = store.list(&[]);
+    assert_eq!(
+        result.len(),
+        0,
+        "New key-value store must have not list any children"
+    );
 }

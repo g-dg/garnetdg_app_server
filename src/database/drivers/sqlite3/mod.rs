@@ -30,27 +30,36 @@ impl DbDriver for SQLite3Connection {
         }
     }
 
-    fn schema_create_key_value(&self, table_prefix: Option<&str>, store_name: &str) {
-        SQLite3Connection::schema_create_key_value(&self, table_prefix, store_name)
+    fn schema_create_key_value(&self, namespace: Option<&str>, store_name: &str) {
+        SQLite3Connection::schema_create_key_value(&self, namespace, store_name)
     }
 
     fn key_value_get(
         &self,
-        table_prefix: Option<&str>,
+        namespace: Option<&str>,
         store_name: &str,
         key: &[&str],
     ) -> Option<String> {
-        SQLite3Connection::key_value_get(self, table_prefix, store_name, key)
+        SQLite3Connection::key_value_get(self, namespace, store_name, key)
     }
 
     fn key_value_set(
         &self,
-        table_prefix: Option<&str>,
+        namespace: Option<&str>,
         store_name: &str,
         key: &[&str],
-        value: &str,
+        value: Option<&str>,
     ) {
-        SQLite3Connection::key_value_set(self, table_prefix, store_name, key, value)
+        SQLite3Connection::key_value_set(self, namespace, store_name, key, value)
+    }
+
+    fn key_value_list(
+        &self,
+        namespace: Option<&str>,
+        store_name: &str,
+        key: &[&str],
+    ) -> Vec<String> {
+        SQLite3Connection::key_value_list(self, namespace, store_name, key)
     }
 }
 

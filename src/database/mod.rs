@@ -72,7 +72,7 @@ impl DbSchema {
     }
 
     /// Sets the value of the provided key
-    pub fn key_value_set(&self, store_name: &str, key: &[&str], value: &str) {
+    pub fn key_value_set(&self, store_name: &str, key: &[&str], value: Option<&str>) {
         self.connection.key_value_set(
             self.config
                 .table_prefix
@@ -81,6 +81,18 @@ impl DbSchema {
             store_name,
             key,
             value,
+        )
+    }
+
+    /// Lists the child keys of a key
+    pub fn key_value_list(&self, store_name: &str, key: &[&str]) -> Vec<String> {
+        self.connection.key_value_list(
+            self.config
+                .table_prefix
+                .as_ref()
+                .and_then(|x| Some(x.as_str())),
+            store_name,
+            key,
         )
     }
 }

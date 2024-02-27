@@ -8,20 +8,26 @@ use crate::config::DatabaseConnectionConfig;
 /// Trait for a database driver
 pub trait DbDriver {
     fn new(config: &DatabaseConnectionConfig) -> Self;
-    fn schema_create_key_value(&self, table_prefix: Option<&str>, store_name: &str);
+    fn schema_create_key_value(&self, namespace: Option<&str>, store_name: &str);
     fn key_value_get(
         &self,
-        table_prefix: Option<&str>,
+        namespace: Option<&str>,
         store_name: &str,
         key: &[&str],
     ) -> Option<String>;
     fn key_value_set(
         &self,
-        table_prefix: Option<&str>,
+        namespace: Option<&str>,
         store_name: &str,
         key: &[&str],
-        value: &str,
+        value: Option<&str>,
     );
+    fn key_value_list(
+        &self,
+        namespace: Option<&str>,
+        store_name: &str,
+        key: &[&str],
+    ) -> Vec<String>;
 }
 
 /// A database connection
@@ -47,10 +53,10 @@ impl DbConnection {
     }
 
     /// Creates a key-value schema
-    pub fn schema_create_key_value(&self, table_prefix: Option<&str>, name: &str) {
+    pub fn schema_create_key_value(&self, namespace: Option<&str>, name: &str) {
         match self {
             DbConnection::SQLite3(connection) => {
-                connection.schema_create_key_value(table_prefix, name)
+                connection.schema_create_key_value(namespace, name)
             }
         }
     }
@@ -58,13 +64,13 @@ impl DbConnection {
     /// Gets the value for a key
     pub fn key_value_get(
         &self,
-        table_prefix: Option<&str>,
+        namespace: Option<&str>,
         store_name: &str,
         key: &[&str],
     ) -> Option<String> {
         match self {
             DbConnection::SQLite3(connection) => {
-                connection.key_value_get(table_prefix, store_name, key)
+                connection.key_value_get(namespace, store_name, key)
             }
         }
     }
@@ -72,14 +78,28 @@ impl DbConnection {
     /// Sets the value on a key
     pub fn key_value_set(
         &self,
-        table_prefix: Option<&str>,
+        namespace: Option<&str>,
         store_name: &str,
         key: &[&str],
-        value: &str,
+        value: Option<&str>,
     ) {
         match self {
             DbConnection::SQLite3(connection) => {
-                connection.key_value_set(table_prefix, store_name, key, value)
+                connection.key_value_set(namespace, store_name, key, value)
+            }
+        }
+    }
+
+    /// Lists the child keys of a key
+    pub fn key_value_list(
+        &self,
+        namespace: Option<&str>,
+        store_name: &str,
+        key: &[&str],
+    ) -> Vec<String> {
+        match self {
+            DbConnection::SQLite3(connection) => {
+                connection.key_value_list(namespace, store_name, key)
             }
         }
     }

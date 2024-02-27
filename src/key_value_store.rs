@@ -41,20 +41,28 @@ impl<T: Serialize + DeserializeOwned> KeyValueStore<T> {
             })
         } else {
             //TODO: in-memory key-value store
-            None
+            todo!();
         }
     }
 
     /// Sets the value of a key
-    pub fn set(&self, key: &[&str], value: T) {
+    pub fn set(&self, key: &[&str], value: Option<T>) {
         if let Some(database) = self.database.clone() {
-            database.key_value_set(
-                &self.name,
-                &key,
-                &serde_json::to_string(&value).expect("Failed to convert key value to JSON"),
-            )
+            let serialized_value = value
+                .map(|x| serde_json::to_string(&x).expect("Failed to convert key value to JSON"));
+            database.key_value_set(&self.name, &key, serialized_value.as_deref())
         } else {
             //TODO: in-memory key-value store
+            todo!();
+        }
+    }
+
+    pub fn list(&self, key: &[&str]) -> Vec<String> {
+        if let Some(database) = self.database.clone() {
+            database.key_value_list(&self.name, &key)
+        } else {
+            //TODO: in-memory key-value store
+            todo!();
         }
     }
 }
