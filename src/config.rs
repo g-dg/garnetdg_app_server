@@ -114,9 +114,9 @@ pub struct KeyValueConfig {
 pub struct MessageQueueConfig {
     /// Database schema to store messages (not yet supported)
     pub database_schema: Option<String>,
-    /// Number of seconds before the message expires (not yet supported)
+    /// Number of seconds before the message expires
     pub message_expiry: Option<u64>,
-    /// Maximum number of messages per path (not yet supported)
+    /// Maximum number of messages per path
     pub message_limit: Option<u64>,
 }
 

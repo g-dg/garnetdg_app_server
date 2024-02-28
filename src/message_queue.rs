@@ -98,8 +98,10 @@ impl<T: Send + Sync + 'static> MessageQueue<T> {
                             Self::send_message_recursive(&mut subscription_tree, &path, Arc::new(message));
 
                             //TODO: optionally save messages in database
+
                             //TODO: cleanup older messages according to config settings
                             //TODO: also clean up any empty nodes (i.e. nodes that have no subscriptions and no non-expired messages)
+                            
                         }
 
                         // handles ping requests
@@ -400,6 +402,36 @@ impl<T> SubscriptionTreeNode<T> {
         };
 
         messages
+    }
+
+    /// Cleans up expired messages according to config.
+    /// Returns true if the node is empty and can be cleaned up by the parent
+    fn cleanup_messages(
+        &mut self,
+        path: &[String],
+        config: &MessageQueueConfig
+    ) -> bool {
+        if path.len() > 0 {
+            let descendent = self.descendents.get_mut(&path[0]);
+            if let Some(descendent) = descendent {
+                // recurse into children until the end of path
+                descendent.cleanup_messages(&path[1..], config)
+            } else {
+                // return whether the node is empty
+                self.descendents.len() == 0 && self.messages.len() == 0 && self.subscriptions.len() == 0
+            }
+        } else {
+            // delete messages above count
+            if let Some(message_count_limit) = config.message_limit {
+                let message_count_limit = message_count_limit as usize;
+                while self.messages.len() > message_count_limit {
+                    self.messages.pop_front();
+                }
+            }
+
+            // return whether the node is empty
+            self.descendents.len() == 0 && self.messages.len() == 0 && self.subscriptions.len() == 0
+        }
     }
 }
 

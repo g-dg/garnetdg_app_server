@@ -47,7 +47,20 @@ impl SQLite3Connection {
 
         let table_prefix = Self::get_table_prefix(namespace, Some(store_name));
 
-        todo!();
+        let node_id = Self::get_node_id(&conn, &table_prefix, key, false);
+
+        if let Some(node_id) = node_id {
+            conn.prepare_cached(&format!(
+                "SELECT \"value\" FROM \"{}key_value\" WHERE \"tree_node_id\" = :id;",
+                table_prefix
+            ))
+            .expect("Error occurred while preparing SQL statement")
+            .query_row(named_params! {":id": node_id}, |row| row.get(0))
+            .optional()
+            .expect("Error occurred while querying database")
+        } else {
+            None
+        }
     }
 
     pub fn key_value_set(
@@ -63,6 +76,41 @@ impl SQLite3Connection {
             .expect("Could not get database connection from connection pool");
 
         let table_prefix = Self::get_table_prefix(namespace, Some(store_name));
+
+        if let Some(value) = value {
+            // create node and set value
+            let node_id = Self::get_node_id(&conn, &table_prefix, key, true);
+
+            let result: Option<i64> = conn
+                .prepare_cached(&format!(
+                    "SELECT \"id\" FROM \"{}key_value\" WHERE \"tree_node_id\" = :id;",
+                    table_prefix
+                ))
+                .expect("Error occurred while preparing SQL statement")
+                .query_row(named_params! {":id": node_id}, |row| row.get(0))
+                .optional()
+                .expect("Error occurred while querying database");
+
+            if let Some(value_id) = result {
+                // update value
+                conn.prepare_cached(&format!(
+                    "UPDATE \"{}key_value\" SET \"value\" = :value WHERE \"id\" = :value_id;",
+                    table_prefix
+                ))
+                .expect("Error occurred while preparing SQL statement")
+                .execute(named_params! {":value": value, ":value_id": value_id})
+                .expect("Error occurred while updating database");
+            } else {
+                // create value
+                conn.prepare_cached(&format!("INSERT INTO \"{}key_value\" (\"tree_node_id\", \"value\") VALUES (:node_id, :value);", table_prefix))
+                .expect("Error occurred while preparing SQL statement")
+                .execute(named_params! {":node_id": node_id, ":value": value})
+                .expect("Error occurred while updating database");
+            }
+        } else {
+            // unset and clean up if no children
+            // also clean up parents that don't have values
+        }
 
         todo!();
     }
