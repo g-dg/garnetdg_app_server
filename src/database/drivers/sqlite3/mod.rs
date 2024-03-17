@@ -1,6 +1,6 @@
 //! SQLite3 database driver
 
-mod key_value;
+pub mod data_store;
 
 use super::DbDriver;
 use crate::config::DatabaseConnectionConfig;
@@ -22,44 +22,12 @@ impl DbDriver for SQLite3Connection {
                     .with_init(|c| c.execute_batch("PRAGMA busy_timeout = 60000;"));
                 let pool = r2d2::Pool::new(manager).expect("Could not connect to SQLite3 database");
                 pool.get()
-				.expect("Could not get database connection for initialization")
-				.execute_batch("PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL; PRAGMA foreign_keys = 1; PRAGMA auto_vacuum = INCREMENTAL; PRAGMA recursive_triggers = 1;")
-				.expect("Could not run database initialization commands");
+                .expect("Could not get database connection for initialization")
+                .execute_batch("PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL; PRAGMA foreign_keys = 1; PRAGMA auto_vacuum = INCREMENTAL; PRAGMA recursive_triggers = 1;")
+                .expect("Could not run database initialization commands");
                 Self { pool }
             }
         }
-    }
-
-    fn schema_create_key_value(&self, namespace: Option<&str>, store_name: &str) {
-        SQLite3Connection::schema_create_key_value(&self, namespace, store_name)
-    }
-
-    fn key_value_get(
-        &self,
-        namespace: Option<&str>,
-        store_name: &str,
-        key: &[&str],
-    ) -> Option<String> {
-        SQLite3Connection::key_value_get(self, namespace, store_name, key)
-    }
-
-    fn key_value_set(
-        &self,
-        namespace: Option<&str>,
-        store_name: &str,
-        key: &[&str],
-        value: Option<&str>,
-    ) {
-        SQLite3Connection::key_value_set(self, namespace, store_name, key, value)
-    }
-
-    fn key_value_list(
-        &self,
-        namespace: Option<&str>,
-        store_name: &str,
-        key: &[&str],
-    ) -> Vec<String> {
-        SQLite3Connection::key_value_list(self, namespace, store_name, key)
     }
 }
 

@@ -1,11 +1,13 @@
 //! Database module
 
+pub mod api;
 pub mod drivers;
+pub mod models;
 
 use std::collections::HashMap;
 
 use self::drivers::DbConnection;
-use crate::config::{DatabaseConfig, DatabaseSchemaConfig};
+use crate::config::{DatabaseConfig, DatabaseConnectionConfig, DatabaseSchemaConfig};
 
 /// Database schema
 #[derive(Clone)]
@@ -49,50 +51,22 @@ impl DbSchema {
         schemas
     }
 
-    pub fn schema_create_key_value(&self, store_name: &str) {
-        self.connection.schema_create_key_value(
-            self.config
-                .table_prefix
-                .as_ref()
-                .and_then(|x| Some(x.as_str())),
-            store_name,
-        )
-    }
+    /// Creates an in-memory database schema.
+    /// Uses SQLite3 in-memory database as the backend
+    pub fn new_memory() -> Self {
+        let connection_config = DatabaseConnectionConfig::SQLite3 {
+            database: String::from(":memory:"),
+        };
+        let connection = DbConnection::new(&connection_config);
 
-    /// Gets the value of the provided key
-    pub fn key_value_get(&self, store_name: &str, key: &[&str]) -> Option<String> {
-        self.connection.key_value_get(
-            self.config
-                .table_prefix
-                .as_ref()
-                .and_then(|x| Some(x.as_str())),
-            store_name,
-            key,
-        )
-    }
-
-    /// Sets the value of the provided key
-    pub fn key_value_set(&self, store_name: &str, key: &[&str], value: Option<&str>) {
-        self.connection.key_value_set(
-            self.config
-                .table_prefix
-                .as_ref()
-                .and_then(|x| Some(x.as_str())),
-            store_name,
-            key,
-            value,
-        )
-    }
-
-    /// Lists the child keys of a key
-    pub fn key_value_list(&self, store_name: &str, key: &[&str]) -> Vec<String> {
-        self.connection.key_value_list(
-            self.config
-                .table_prefix
-                .as_ref()
-                .and_then(|x| Some(x.as_str())),
-            store_name,
-            key,
-        )
+        let schema_config = DatabaseSchemaConfig {
+            connection: String::new(),
+            table_prefix: None,
+        };
+        let schema = DbSchema {
+            config: schema_config,
+            connection,
+        };
+        schema
     }
 }
