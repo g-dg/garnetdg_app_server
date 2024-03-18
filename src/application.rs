@@ -9,9 +9,8 @@ use std::{
 use crate::{
     auth::Auth,
     config::{Config, RoutePermissions},
+    datastore::DataStore,
     database::DbSchema,
-    key_value_store::KeyValueStore,
-    message_queue::MessageQueue,
 };
 
 /// Represents the application
@@ -82,14 +81,9 @@ pub enum ApplicationEndpoint {
         server_file_path: String,
         index_file: Option<String>,
     },
-    KeyValue {
+    Data {
         permissions: RoutePermissions,
-        key_value: KeyValueStore<String>,
-        database_schema: DbSchema,
-    },
-    MessageQueue {
-        permissions: RoutePermissions,
-        message_queue: MessageQueue<String>,
+        key_value: DataStore<String>,
         database_schema: DbSchema,
     },
     Auth {

@@ -12,15 +12,17 @@ pub struct Config {
     /// Basic server configuration
     #[serde(default = "default_server")]
     pub server: ServerConfig,
+
     /// Database configuration
     #[serde(default = "default_database")]
     pub databases: DatabaseConfig,
-    /// Key-value store configuration
-    pub key_value_stores: HashMap<String, KeyValueConfig>,
-    /// Message queue configuration
-    pub message_queues: HashMap<String, MessageQueueConfig>,
+
+    /// Datastore configuration
+    pub data_stores: HashMap<String, DataStoreConfig>,
+
     /// Authentication configuration
     pub authentication: Option<AuthenticationConfig>,
+
     /// Route configuration
     #[serde(default = "default_route")]
     pub routes: HashMap<String, RouteConfig>,
@@ -72,6 +74,7 @@ impl Config {
 pub struct ServerConfig {
     /// Server host (0.0.0.0 for all hosts, 127.0.0.1 for localhost)
     pub host: String,
+
     /// Server port
     pub port: u16,
 }
@@ -81,6 +84,7 @@ pub struct ServerConfig {
 pub struct DatabaseConfig {
     /// Database connection configuration
     pub connections: HashMap<String, DatabaseConnectionConfig>,
+
     /// Database schema configuration
     pub schemas: HashMap<String, DatabaseSchemaConfig>,
 }
@@ -98,26 +102,29 @@ pub enum DatabaseConnectionConfig {
 pub struct DatabaseSchemaConfig {
     /// Database connection for the schema to use
     pub connection: String,
+
     /// Optional table prefix for this schema
     pub table_prefix: Option<String>,
 }
 
-/// Key-value store configuration
+/// Data store configuration
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct KeyValueConfig {
-    /// Database schema to store keys and values (in-memory storage not yet supported)
+pub struct DataStoreConfig {
+    /// Database schema for persisting data.
+    /// If not set, data is not persisted to a database and will be lost at application shutdown.
     pub database_schema: Option<String>,
-}
 
-/// Message queue configuration
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct MessageQueueConfig {
-    /// Database schema to store messages (not yet supported)
-    pub database_schema: Option<String>,
-    /// Number of seconds before the message expires
-    pub message_expiry: Option<u64>,
-    /// Maximum number of messages per path
-    pub message_limit: Option<u64>,
+    /// Whether to keep history.
+    /// If not set, the default (false) is used.
+    pub keep_history: Option<bool>,
+
+    /// Maximum age in seconds of previous values to keep for each key.
+    /// Age is determined by the time the value was set.
+    pub history_max_age: Option<u64>,
+
+    /// Maximum number of previous values to keep for each key.
+    /// Set to 0 to not keep history entries.
+    pub history_max_entries: Option<u64>,
 }
 
 /// Authentication configuration
@@ -125,6 +132,7 @@ pub struct MessageQueueConfig {
 pub struct AuthenticationConfig {
     /// Database schema to use for authentication
     pub database_schema: String,
+
     /// Authentication default setup
     pub defaults: AuthenticationDefaultsConfig,
 }
@@ -134,6 +142,7 @@ pub struct AuthenticationConfig {
 pub struct AuthenticationDefaultsConfig {
     /// List of default roles
     pub roles: Vec<String>,
+
     /// Hashmap of default users
     pub users: HashMap<String, AuthenticationDefaultUserConfig>,
 }
@@ -143,6 +152,7 @@ pub struct AuthenticationDefaultsConfig {
 pub struct AuthenticationDefaultUserConfig {
     /// Default user password
     pub default_password: Option<String>,
+
     /// List of default user roles
     pub roles: Vec<String>,
 }
@@ -162,16 +172,10 @@ pub enum RouteConfig {
         index_file: Option<String>,
     },
 
-    /// Key-value store
-    KeyValue {
+    /// Datastore
+    Data {
         permissions: RoutePermissions,
-        key_value_store: Option<String>,
-    },
-
-    /// Message queue
-    MessageQueue {
-        permissions: RoutePermissions,
-        message_queue: Option<String>,
+        data_store: Option<String>,
     },
 
     /// Authentication endpoints
@@ -186,6 +190,7 @@ pub enum RouteConfig {
 pub struct RoutePermissions {
     /// Read permissions
     pub read: RoutePermissionValue,
+
     /// Write permissions
     pub write: RoutePermissionValue,
 }
@@ -196,6 +201,7 @@ pub struct RoutePermissions {
 pub enum RoutePermissionValue {
     /// Completely allow or deny permissions
     Global(bool),
+
     /// Only allow the listed roles
     Roles(Vec<String>),
 }
