@@ -85,7 +85,7 @@ impl<K: Clone + Eq + Hash, V> TLRUCache<K, V> {
         if self.entries.contains_key(key) {
             if self.is_entry_not_expired(&self.entries[key], now) {
                 // if not currently the most recently used entry, then set as the most recently used entry
-                if self.newest_entry.clone().is_some_and(|x| &x != key) {
+                let entry = if self.newest_entry.clone().is_some_and(|x| &x != key) {
                     // remove from current location
                     let entry = &self.entries[key];
                     let current_newer_key = entry.newer.clone();
@@ -107,9 +107,16 @@ impl<K: Clone + Eq + Hash, V> TLRUCache<K, V> {
                     entry.newer = oldest_key;
                     entry.older = newest_key;
                     self.newest_entry = Some(key.clone());
-                }
 
-                Some(Rc::clone(&self.entries[key].value))
+                    entry
+                } else {
+                    self.entries.get_mut(key).unwrap()
+                };
+
+                // update entry access time
+                entry.access_time = now;
+
+                Some(Rc::clone(&entry.value))
             } else {
                 // if entry expired, remove it
                 self.remove(key);
