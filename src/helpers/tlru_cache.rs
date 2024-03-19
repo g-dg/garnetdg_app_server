@@ -74,7 +74,7 @@ impl<K: Clone + Eq + Hash, V> TLRUCache<K, V> {
         // update pointer to most recent item
         self.newest_entry = Some(key);
 
-        self.gc(false);
+        self.gc(false, Some(now));
     }
 
     /// Gets an item from the cache.
@@ -83,30 +83,33 @@ impl<K: Clone + Eq + Hash, V> TLRUCache<K, V> {
         let now = Instant::now();
 
         if self.entries.contains_key(key) {
-            if self.is_entry_expired(&self.entries[key], now) {
-                // remove from current location
-                let entry = &self.entries[key];
-                let current_newer_key = entry.newer.clone();
-                let current_older_key = entry.older.clone();
-                let current_newer = self.entries.get_mut(&current_newer_key).unwrap();
-                current_newer.older = current_older_key.clone();
-                let current_older = self.entries.get_mut(&current_older_key).unwrap();
-                current_older.newer = current_newer_key;
+            if self.is_entry_not_expired(&self.entries[key], now) {
+                // if not currently the most recently used entry, then set as the most recently used entry
+                if self.newest_entry.clone().is_some_and(|x| &x != key) {
+                    // remove from current location
+                    let entry = &self.entries[key];
+                    let current_newer_key = entry.newer.clone();
+                    let current_older_key = entry.older.clone();
+                    let current_newer = self.entries.get_mut(&current_newer_key).unwrap();
+                    current_newer.older = current_older_key.clone();
+                    let current_older = self.entries.get_mut(&current_older_key).unwrap();
+                    current_older.newer = current_newer_key;
 
-                // insert in newest location
-                let newest_key = self.newest_entry.clone().unwrap();
-                let oldest_key = self.entries[&newest_key].newer.clone();
-                let newest = self.entries.get_mut(&newest_key).unwrap();
-                newest.newer = key.clone();
-                let oldest = self.entries.get_mut(&oldest_key).unwrap();
-                oldest.older = key.clone();
+                    // insert in newest location
+                    let newest_key = self.newest_entry.clone().unwrap();
+                    let newest = self.entries.get_mut(&newest_key).unwrap();
+                    let oldest_key = newest.newer.clone();
+                    newest.newer = key.clone();
+                    let oldest = self.entries.get_mut(&oldest_key).unwrap();
+                    oldest.older = key.clone();
 
-                let entry = self.entries.get_mut(key).unwrap();
-                entry.newer = oldest_key;
-                entry.older = newest_key;
-                self.newest_entry = Some(key.clone());
+                    let entry = self.entries.get_mut(key).unwrap();
+                    entry.newer = oldest_key;
+                    entry.older = newest_key;
+                    self.newest_entry = Some(key.clone());
+                }
 
-                Some(Rc::clone(&entry.value))
+                Some(Rc::clone(&self.entries[key].value))
             } else {
                 // if entry expired, remove it
                 self.remove(key);
@@ -154,8 +157,12 @@ impl<K: Clone + Eq + Hash, V> TLRUCache<K, V> {
     /// Removes expired items from the cache and reduces the cache size to the maximum.
     /// If the `full` parameter is set to false, this only removes the expired items until it finds a non-expired item.
     /// If the `full` parameter is set to true, this removes all expired items.
-    pub fn gc(&mut self, full: bool) {
-        let now = Instant::now();
+    pub fn gc(&mut self, full: bool, now: Option<Instant>) {
+        let now = if let Some(now) = now {
+            now
+        } else {
+            Instant::now()
+        };
 
         if let Some(newest_entry) = self.newest_entry.clone() {
             let mut current_entry = self.entries[&newest_entry].newer.clone();
@@ -169,7 +176,7 @@ impl<K: Clone + Eq + Hash, V> TLRUCache<K, V> {
                     if self.entries.len() > max_items {
                         self.remove(&current_entry);
                     }
-                } else if !self.is_entry_expired(&self.entries[&current_entry], now) {
+                } else if !self.is_entry_not_expired(&self.entries[&current_entry], now) {
                     // if the entry is invalid, remove it
                     self.remove(&current_entry);
                 } else if !full {
@@ -188,7 +195,7 @@ impl<K: Clone + Eq + Hash, V> TLRUCache<K, V> {
     }
 
     /// Checks if a cache entry is expired
-    fn is_entry_expired(&self, cache_entry: &CacheEntry<K, V>, now: Instant) -> bool {
+    fn is_entry_not_expired(&self, cache_entry: &CacheEntry<K, V>, now: Instant) -> bool {
         // check creation age
         if let Some(max_create_age) = self.max_create_age {
             if now.duration_since(cache_entry.create_time) > max_create_age {
