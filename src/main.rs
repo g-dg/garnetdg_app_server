@@ -3,9 +3,10 @@
 pub mod application;
 pub mod auth;
 pub mod config;
-pub mod datastore;
 pub mod database;
+pub mod datastore;
 pub mod endpoints;
+pub mod helpers;
 
 #[cfg(test)]
 mod tests;
