@@ -11,30 +11,19 @@ pub mod helpers;
 #[cfg(test)]
 mod tests;
 
-use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 use application::Application;
 use config::Config;
 use tokio::io;
 
-/// Test endpoint
-async fn hello() -> impl Responder {
-    HttpResponse::Ok().body("Hello, World!")
-}
-
 /// Application entry point
 #[tokio::main]
 async fn main() -> io::Result<()> {
-    env_logger::init();
-
     // load config
     let config = Config::load_file("./config.json").await;
 
     let application = Application::build(&config).await;
 
-    let result = HttpServer::new(move || App::new().route("/", web::get().to(hello)))
-        .bind((config.server.host.clone(), config.server.port))?
-        .run()
-        .await;
+    let result = io::Result::Ok(());
 
     application.stop().await;
 
