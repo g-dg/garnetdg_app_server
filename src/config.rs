@@ -18,13 +18,14 @@ pub struct Config {
     pub databases: DatabaseConfig,
 
     /// Datastore configuration
+    #[serde(default = "default_data_stores")]
     pub data_stores: HashMap<String, DataStoreConfig>,
 
     /// Authentication configuration
     pub authentication: Option<AuthenticationConfig>,
 
     /// Route configuration
-    #[serde(default = "default_route")]
+    #[serde(default = "default_routes")]
     pub routes: HashMap<String, RouteConfig>,
 }
 
@@ -222,18 +223,20 @@ fn default_database() -> DatabaseConfig {
     }
 }
 
+fn default_data_stores() -> HashMap<String, DataStoreConfig> {
+    HashMap::new()
+}
+
 /// Creates the default route configuration
-fn default_route() -> HashMap<String, RouteConfig> {
-    let mut routes = HashMap::<String, RouteConfig>::new();
-    routes.insert(
+fn default_routes() -> HashMap<String, RouteConfig> {
+    HashMap::from([(
         String::from("/"),
         RouteConfig::File {
             permissions: default_readonly_permissions(),
             server_file_path: String::from("./client/"),
             index_file: Some(String::from("index.html")),
         },
-    );
-    routes
+    )])
 }
 
 /// Defines read-only route permission for default routes
