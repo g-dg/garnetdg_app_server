@@ -1,6 +1,6 @@
 //! SQLite3 database driver
 
-pub mod data_store;
+pub mod datastore;
 
 use super::DbDriver;
 use crate::config::DatabaseConnectionConfig;

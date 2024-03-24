@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use crate::database::{
     drivers::DbConnection,
-    models::data_store::{DataStoreTreeNode, DataStoreValue},
+    models::datastore::{DataStoreTreeNode, DataStoreValue},
     DbSchema,
 };
 
