@@ -17,7 +17,11 @@ use serde::{de::DeserializeOwned, Serialize};
 use tokio::sync::{mpsc as mpsc_async, oneshot as oneshot_async};
 use uuid::Uuid;
 
-use crate::{config::DataStoreConfig, database::DbSchema, helpers::tlru_cache::TLRUCache};
+use crate::{
+    config::DataStoreConfig,
+    database::DbSchema,
+    helpers::{sync_async::OneshotSender, tlru_cache::TLRUCache},
+};
 
 const ITEM_CACHE_MAX_ITEMS: usize = 1000;
 const ITEM_CACHE_MAX_ACCESS_AGE: Duration = Duration::from_secs(3600);
@@ -142,7 +146,7 @@ impl<T: Serialize + DeserializeOwned + Send + Sync + 'static> DataStore<T> {
         tx.send(DataStoreRequest::Get {
             path: path.iter().map(|x| String::from(*x)).collect(),
             last_change_id,
-            response_channel: response_tx,
+            response_channel: OneshotSender::Async(response_tx),
         })
         .expect("Error occurred while sending get all request to data store");
 
@@ -158,7 +162,7 @@ impl<T: Serialize + DeserializeOwned + Send + Sync + 'static> DataStore<T> {
 
         tx.send(DataStoreRequest::GetCurrent {
             path: path.iter().map(|x| String::from(*x)).collect(),
-            response_channel: response_tx,
+            response_channel: OneshotSender::Async(response_tx),
         })
         .expect("Error occurred while sending get current request to data store");
 
@@ -174,7 +178,7 @@ impl<T: Serialize + DeserializeOwned + Send + Sync + 'static> DataStore<T> {
 
         tx.send(DataStoreRequest::List {
             path: path.iter().map(|x| String::from(*x)).collect(),
-            response_channel: response_tx,
+            response_channel: OneshotSender::Async(response_tx),
         })
         .expect("Error occurred while sending list request to data store");
 
@@ -191,7 +195,7 @@ impl<T: Serialize + DeserializeOwned + Send + Sync + 'static> DataStore<T> {
         tx.send(DataStoreRequest::Set {
             path: path.iter().map(|x| String::from(*x)).collect(),
             value,
-            response_channel: Some(response_tx),
+            response_channel: Some(OneshotSender::Async(response_tx)),
         })
         .expect("Error occurred while sending set request to data store");
 
@@ -207,7 +211,7 @@ impl<T: Serialize + DeserializeOwned + Send + Sync + 'static> DataStore<T> {
 
         tx.send(DataStoreRequest::Delete {
             path: path.iter().map(|x| String::from(*x)).collect(),
-            response_channel: Some(response_tx),
+            response_channel: Some(OneshotSender::Async(response_tx)),
         })
         .expect("Error occurred while sending delete request to data store");
 
@@ -236,7 +240,7 @@ impl<T: Serialize + DeserializeOwned + Send + Sync + 'static> DataStore<T> {
         let (ping_tx, ping_rx) = oneshot_async::channel();
 
         tx.send(DataStoreRequest::Ping {
-            response_channel: Some(ping_tx),
+            response_channel: Some(OneshotSender::Async(ping_tx)),
         })
         .expect("Error occurred while sending data store ping");
 
@@ -244,34 +248,32 @@ impl<T: Serialize + DeserializeOwned + Send + Sync + 'static> DataStore<T> {
             .await
             .expect("Error occurred while receiving ping reply from data store");
     }
+}
 
-    /// Requests data store shutdown.
-    /// This gracefully shuts down the data store and waits for the thread to exit.
-    /// Using the data store after shutdown is called results in undefined behavior.
-    pub async fn shutdown(self) {
-        let tx = self.mpsc_channel_sender.clone();
+impl<T> Drop for DataStore<T> {
+    fn drop(&mut self) {
+        // If we're the last clone, then we can shut down the thread
+        if Arc::strong_count(&self.join_handle) == 1 {
+            let tx = self.mpsc_channel_sender.clone();
 
-        let (shutdown_tx, shutdown_rx) = oneshot_async::channel();
+            let (response_tx, response_rx) = mpsc::channel();
 
-        // request shutdown
-        tx.send(DataStoreRequest::Shutdown {
-            response_channel: Some(shutdown_tx),
-        })
-        .expect("Error occurred while requesting data store shutdown");
+            tx.send(DataStoreRequest::Shutdown {
+                response_channel: Some(OneshotSender::Sync(response_tx)),
+            })
+            .ok();
 
-        // wait for shutdown
-        shutdown_rx
-            .await
-            .expect("Error occurred while waiting for data store shutdown");
+            // wait for shutdown
+            response_rx.recv().ok();
 
-        // wait for thread to exit
-        let join_handle = self
-            .join_handle
-            .lock()
-            .expect("Error occurred while locking data store thread handle for joining")
-            .take();
-        if let Some(join_handle) = join_handle {
-            join_handle.join().expect("Data store thread panicked");
+            // wait for thread to exit
+            self.join_handle
+                .lock()
+                .unwrap()
+                .take()
+                .unwrap()
+                .join()
+                .unwrap();
         }
     }
 }
@@ -285,7 +287,7 @@ enum DataStoreRequest<T> {
         /// Sends all changes after this last change id
         last_change_id: Option<Uuid>,
         /// Response channel (sends the list of value entries)
-        response_channel: oneshot_async::Sender<Vec<Arc<Value<T>>>>,
+        response_channel: OneshotSender<Vec<Arc<Value<T>>>>,
     },
 
     /// Gets the current value
@@ -293,7 +295,7 @@ enum DataStoreRequest<T> {
         /// Path of the value to get
         path: Vec<String>,
         /// Response channel (sends the value entry)
-        response_channel: oneshot_async::Sender<Arc<Value<T>>>,
+        response_channel: OneshotSender<Arc<Value<T>>>,
     },
 
     /// Lists sub-keys of a path that currently contain values
@@ -301,7 +303,7 @@ enum DataStoreRequest<T> {
         /// Path to list sub-keys that contain values
         path: Vec<String>,
         /// Response channel (sends list of keys)
-        response_channel: oneshot_async::Sender<Vec<String>>,
+        response_channel: OneshotSender<Vec<String>>,
     },
 
     /// Inserts a value into the history, updating the current value
@@ -311,7 +313,7 @@ enum DataStoreRequest<T> {
         /// Value to set
         value: T,
         /// Response channel
-        response_channel: Option<oneshot_async::Sender<Uuid>>,
+        response_channel: Option<OneshotSender<Uuid>>,
     },
 
     /// Inserts a None value into the history, updating the current value
@@ -319,7 +321,7 @@ enum DataStoreRequest<T> {
         /// Path to set a None value of
         path: Vec<String>,
         /// Response channel
-        response_channel: Option<oneshot_async::Sender<Uuid>>,
+        response_channel: Option<OneshotSender<Uuid>>,
     },
 
     /// Subscribes for a change notification on a path
@@ -329,7 +331,7 @@ enum DataStoreRequest<T> {
         /// Subscription timeout
         timeout: Option<Duration>,
         /// Response channel (sends subscription id)
-        response_channel: oneshot_async::Sender<SubscriptionRecord<T>>,
+        response_channel: OneshotSender<SubscriptionRecord<T>>,
     },
 
     /// Unsubscribes from changes for a path
@@ -337,19 +339,19 @@ enum DataStoreRequest<T> {
         /// Subscription id to cancel
         subscription_id: Uuid,
         /// Response channel
-        response_channel: Option<oneshot_async::Sender<()>>,
+        response_channel: Option<OneshotSender<()>>,
     },
 
     /// Pings the data store
     Ping {
         /// Response channel
-        response_channel: Option<oneshot_async::Sender<()>>,
+        response_channel: Option<OneshotSender<()>>,
     },
 
     /// Request data store shutdown
     Shutdown {
         /// Response channel
-        response_channel: Option<oneshot_async::Sender<()>>,
+        response_channel: Option<OneshotSender<()>>,
     },
 }
 
@@ -388,6 +390,7 @@ impl<T> Subscription<T> {
 }
 impl<T> Drop for Subscription<T> {
     fn drop(&mut self) {
+        // Once subscription is dropped, cancel it
         self.data_store_channel
             .send(DataStoreRequest::Unsubscribe {
                 subscription_id: self.id,
