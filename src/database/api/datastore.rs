@@ -10,13 +10,8 @@ use crate::database::{
 impl DbSchema {
     /// Creates the data-store schema
     pub fn schema_create_data_store(&self, store_name: &str) {
-        self.connection.schema_create_data_store(
-            self.config
-                .table_prefix
-                .as_ref()
-                .and_then(|x| Some(x.as_str())),
-            store_name,
-        )
+        self.connection
+            .schema_create_data_store(self.config.table_prefix.as_deref(), store_name)
     }
 }
 

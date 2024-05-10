@@ -35,7 +35,7 @@ impl Config {
         let read_result = fs::read_to_string(filename).await;
         let contents = match read_result {
             Ok(value) => {
-                if value.len() > 0 {
+                if !value.is_empty() {
                     value
                 } else {
                     String::from("{}")
@@ -61,7 +61,7 @@ impl Config {
 
         let args: Vec<String> = env::args().collect();
         let port_arg: Option<u16> = args.get(1).and_then(|x| x.parse().ok());
-        let host_arg = args.get(2).and_then(|x| Some(x.to_string()));
+        let host_arg = args.get(2).map(|x| x.to_string());
 
         config.server.host = host_arg.unwrap_or(config.server.host);
         config.server.port = port_arg.unwrap_or(config.server.port);

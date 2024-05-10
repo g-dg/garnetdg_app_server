@@ -9,8 +9,8 @@ use std::{
 use crate::{
     auth::Auth,
     config::{Config, RoutePermissions},
-    datastore::DataStore,
     database::DbSchema,
+    datastore::DataStore,
 };
 
 /// Represents the application
@@ -39,16 +39,15 @@ impl Application {
         let database_schemas = DbSchema::connect_all(&config.databases);
 
         // set up authentication if configured
-        let auth = match &config.authentication {
-            Some(auth_config) => Some(Auth::new(
+        let auth = config.authentication.as_ref().map(|auth_config| {
+            Auth::new(
                 auth_config,
                 database_schemas
                     .get(&auth_config.database_schema)
                     .expect("Authentication database schema not found in config")
                     .clone(),
-            )),
-            None => None,
-        };
+            )
+        });
 
         Self {
             app_data: AppData {
@@ -97,6 +96,6 @@ pub enum ApplicationEndpoint {
 
 /// Enum for application shutdown functions
 enum ShutdownFunction {
-    Closure(Box<dyn FnOnce() -> ()>),
+    Closure(Box<dyn FnOnce()>),
     Future(Pin<Box<dyn Future<Output = ()>>>),
 }

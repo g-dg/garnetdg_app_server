@@ -45,7 +45,7 @@ impl<K: Clone + Eq + Hash, V> TLRUCache<K, V> {
 
         let new_node = if let Some(current_newest_key) = &self.newest_entry {
             // inserting with existing entries
-            let current_newest = self.entries.get_mut(&current_newest_key).unwrap();
+            let current_newest = self.entries.get_mut(current_newest_key).unwrap();
             let current_oldest_key = current_newest.newer.clone();
             current_newest.newer = key.clone();
             let current_oldest = self.entries.get_mut(&current_oldest_key).unwrap();
@@ -133,7 +133,7 @@ impl<K: Clone + Eq + Hash, V> TLRUCache<K, V> {
         if let Some(newest_entry) = &self.newest_entry {
             if newest_entry == key {
                 // update pointer to previous item
-                let older_key = &self.entries[&key].older;
+                let older_key = &self.entries[key].older;
                 // check if we're removing the last item since the newest entry pointer still needs to be valid after removing the entry
                 if key == older_key {
                     self.newest_entry = None;

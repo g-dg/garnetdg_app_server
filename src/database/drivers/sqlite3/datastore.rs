@@ -35,6 +35,6 @@ CREATE INDEX IF NOT EXISTS \"{0}index_datastore_values__tree_node_id\" ON \"{0}d
 CREATE INDEX IF NOT EXISTS \"{0}index_datastore_values__timestamp\" ON \"{0}datastore_values\" (\"timestamp\");
             ",
             table_prefix))
-        .expect(&format!("An error occurred while creating database tables \"{0}\"", table_prefix));
+        .unwrap_or_else(|_| panic!("An error occurred while creating database tables \"{0}\"", table_prefix));
     }
 }

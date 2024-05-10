@@ -18,7 +18,7 @@ pub struct DbSchema {
 
 impl DbSchema {
     /// Connects to all databases specified in the provided config
-    pub fn connect_all<'a>(config: &'a DatabaseConfig) -> HashMap<String, DbSchema> {
+    pub fn connect_all(config: &DatabaseConfig) -> HashMap<String, DbSchema> {
         // create database connections
         let connections: HashMap<&str, DbConnection> = config
             .connections
@@ -41,7 +41,7 @@ impl DbSchema {
                         (
                             connections
                                 .get(schema_config.connection.as_str())
-                                .expect(&format!("Database connection \"{}\" is not defined in the configuration. (Referenced by schema \"{}\")", schema_config.connection, schema_name))
+                                .unwrap_or_else(|| panic!("Database connection \"{}\" is not defined in the configuration. (Referenced by schema \"{}\")", schema_config.connection, schema_name))
                                 .clone()
                         )
                 }
@@ -63,10 +63,10 @@ impl DbSchema {
             connection: String::new(),
             table_prefix: None,
         };
-        let schema = DbSchema {
+
+        DbSchema {
             config: schema_config,
             connection,
-        };
-        schema
+        }
     }
 }

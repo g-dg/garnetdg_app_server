@@ -19,12 +19,8 @@ impl DbDriver for SQLite3Connection {
         match config {
             DatabaseConnectionConfig::SQLite3 { database } => {
                 let manager = SqliteConnectionManager::file(database)
-                    .with_init(|c| c.execute_batch("PRAGMA busy_timeout = 60000;"));
+                    .with_init(|c| c.execute_batch("PRAGMA busy_timeout = 60000; PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL; PRAGMA foreign_keys = 1; PRAGMA auto_vacuum = INCREMENTAL; PRAGMA recursive_triggers = 1;"));
                 let pool = r2d2::Pool::new(manager).expect("Could not connect to SQLite3 database");
-                pool.get()
-                .expect("Could not get database connection for initialization")
-                .execute_batch("PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL; PRAGMA foreign_keys = 1; PRAGMA auto_vacuum = INCREMENTAL; PRAGMA recursive_triggers = 1;")
-                .expect("Could not run database initialization commands");
                 Self { pool }
             }
         }
