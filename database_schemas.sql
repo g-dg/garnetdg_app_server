@@ -1,7 +1,7 @@
 -- Datastore storage
 
 CREATE TABLE IF NOT EXISTS "datastore_tree" (
-	"id" INTEGER PRIMARY KEY NOT NULL,
+	"id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
 	"parent_id" INTEGER REFERENCES "datastore_tree" ("id"),
 	"key" TEXT NOT NULL
 );
@@ -9,7 +9,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS "index_datastore_tree__ifnull_parent_id__key" 
 CREATE INDEX IF NOT EXISTS "index_datastore_tree__parent_id__key" ON "datastore_tree" ("parent_id", "key");
 
 CREATE TABLE IF NOT EXISTS "datastore_values" (
-	"id" INTEGER PRIMARY KEY NOT NULL,
+	"id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
 	"tree_node_id" INTEGER REFERENCES "datastore_tree",
 	"change_id" TEXT NOT NULL UNIQUE,
 	"timestamp" TEXT NOT NULL,
@@ -21,27 +21,27 @@ CREATE INDEX IF NOT EXISTS "index_datastore_values__timestamp" ON "datastore_val
 -- Authentication storage
 
 CREATE TABLE IF NOT EXISTS "users" (
-	"id" INTEGER PRIMARY KEY NOT NULL,
+	"id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
 	"username" TEXT NOT NULL UNIQUE,
 	"password_hash" TEXT,
 	"active" INTEGER NOT NULL DEFAULT 1
 );
 
 CREATE TABLE IF NOT EXISTS "roles" (
-	"id" INTEGER PRIMARY KEY NOT NULL,
+	"id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
 	"name" TEXT NOT NULL UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS "user_roles" (
-	"id" INTEGER PRIMARY KEY NOT NULL,
-	"user_id" INTEGER NOT NULL REFERENCES "_users" ("id"),
-	"role_id" INTEGER NOT NULL REFERENCES "_roles" ("id"),
+	"id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+	"user_id" INTEGER NOT NULL REFERENCES "users" ("id"),
+	"role_id" INTEGER NOT NULL REFERENCES "roles" ("id"),
 	UNIQUE ("user_id", "role_id")
 );
 
 CREATE TABLE IF NOT EXISTS "sessions" (
-	"id" INTEGER PRIMARY KEY NOT NULL,
+	"id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
 	"token" TEXT NOT NULL UNIQUE,
-	"user_id" INTEGER NOT NULL REFERENCES "_users" ("id"),
+	"user_id" INTEGER NOT NULL REFERENCES "users" ("id"),
 	"timestamp" TEXT NOT NULL
 );
