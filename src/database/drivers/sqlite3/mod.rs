@@ -5,7 +5,7 @@ pub mod datastore;
 use super::DbDriver;
 use crate::config::DatabaseConnectionConfig;
 
-use r2d2::Pool;
+use r2d2::{Pool, PooledConnection};
 use r2d2_sqlite::SqliteConnectionManager;
 
 /// SQLite3 database connection
@@ -31,6 +31,12 @@ impl SQLite3Connection {
     const TABLE_NAME_SEPARATOR: &'static str = "__";
     const TABLE_NAME_ALLOWED_CHARACTERS: &'static str =
         "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_";
+
+    fn get_connection(&self) -> PooledConnection<SqliteConnectionManager> {
+        self.pool
+            .get()
+            .expect("Could not get SQLite database connection fron connection pool")
+    }
 
     fn sanitize_table_name(name: &str) -> String {
         name.chars()

@@ -1,7 +1,7 @@
 //! History-Tracking Change-Subscribable Tree-Based Key-Value Data Store
 
 use std::{
-    collections::{HashMap, VecDeque},
+    collections::HashMap,
     future::Future,
     rc::{Rc, Weak},
     sync::{
@@ -18,9 +18,12 @@ use tokio::sync::{mpsc as mpsc_async, oneshot as oneshot_async};
 use uuid::Uuid;
 
 use crate::{
-    config::DataStoreConfig,
+    config::DatastoreConfig,
     database::DbSchema,
-    helpers::{sync_async::OneshotSender, tlru_cache::TLRUCache},
+    helpers::{
+        sync_async::{MPSCSender, OneshotSender},
+        tlru_cache::TLRUCache,
+    },
 };
 
 const ITEM_CACHE_MAX_ITEMS: usize = 1000;
@@ -30,7 +33,7 @@ const ITEM_CACHE_MAX_ACCESS_AGE: Duration = Duration::from_secs(3600);
 #[derive(Clone)]
 pub struct DataStore<T> {
     name: String,
-    config: DataStoreConfig,
+    config: DatastoreConfig,
     database: DbSchema,
     mpsc_channel_sender: mpsc::Sender<DataStoreRequest<T>>,
     join_handle: Arc<Mutex<Option<JoinHandle<()>>>>,
@@ -39,7 +42,7 @@ pub struct DataStore<T> {
 impl<T: Serialize + DeserializeOwned + Send + Sync + 'static> DataStore<T> {
     /// Sets up a new data store.
     /// Once the data store is done being used, the `shutdown` function must be called.
-    pub async fn new(name: &str, config: DataStoreConfig, database: Option<DbSchema>) -> Self {
+    pub async fn new(name: &str, config: DatastoreConfig, database: Option<DbSchema>) -> Self {
         // we require a database for organizing the data
         // create an in-memory one if none is set
         let database = if let Some(database) = database {
@@ -49,7 +52,7 @@ impl<T: Serialize + DeserializeOwned + Send + Sync + 'static> DataStore<T> {
         };
 
         // create database schema
-        database.schema_create_data_store(name);
+        database.datastore_create(name, &config);
 
         // oneshot used to get the request channel from the spawned thread
         let (spawn_tx, spawn_rx) = oneshot_async::channel();
@@ -67,59 +70,124 @@ impl<T: Serialize + DeserializeOwned + Send + Sync + 'static> DataStore<T> {
                     .send(tx)
                     .expect("Error occurred while sending transmitter from data store thread");
 
-                let subscriptions_by_id: HashMap<Uuid, Rc<SubscriptionRecord<T>>> = HashMap::new();
-                let subscriptions_by_path: HashMap<Vec<String>, Rc<SubscriptionRecord<T>>> = HashMap::new();
+                // will contain the response channel for shutdown request
+                let mut shutdown_response: Option<OneshotSender<()>> = None;
 
-                let value_cache_by_change_id: TLRUCache<Uuid, Arc<Value<T>>> = TLRUCache::new(Some(ITEM_CACHE_MAX_ITEMS), None, Some(ITEM_CACHE_MAX_ACCESS_AGE));
+                // mapping of subscription ids to subscriptions
+                let subscriptions_by_id: HashMap<Uuid, Rc<SubscriptionRecord<T>>> = HashMap::new();
+                // mapping of subscription paths to subscriptions
+                let subscriptions_by_path: HashMap<Vec<String>, Rc<SubscriptionRecord<T>>> =
+                    HashMap::new();
+
+                // TLRU cache of deserialized items to allow more efficient handling of large values
+                let value_cache_by_change_id: TLRUCache<Uuid, Arc<Value<T>>> = TLRUCache::new(
+                    Some(ITEM_CACHE_MAX_ITEMS),
+                    None,
+                    Some(ITEM_CACHE_MAX_ACCESS_AGE),
+                );
 
                 // thread loop
                 loop {
-                    // run loop tasks before loop
-                    //TODO: occasionally commit changes to database
+                    // run maintenance tasks before loop
 
-                    // contains the timeout to allow tasks to run again
+                    // contains the timeout to allow tasks to run occasionally
                     let recv_timeout = Duration::from_millis(1000);
 
                     // wait for request
-                    match rx.recv_timeout(recv_timeout){
+                    match rx.recv_timeout(recv_timeout) {
                         Ok(request) => match request {
-                            DataStoreRequest::Get { path, last_change_id, response_channel } => todo!(),
-                            DataStoreRequest::GetCurrent { path, response_channel } => todo!(),
-                            DataStoreRequest::List { path, response_channel } => todo!(),
-                            DataStoreRequest::Set { path, value, response_channel } => todo!(),
-                            DataStoreRequest::Delete { path, response_channel } => todo!(),
-                            DataStoreRequest::Subscribe { path, timeout, response_channel } => todo!(),
-                            DataStoreRequest::Unsubscribe { subscription_id, response_channel } => todo!(),
+                            DataStoreRequest::Get {
+                                path,
+                                last_change_id,
+                                response_channel,
+                            } => {
+                                // get values after last change id in chronological order
+                                todo!()
+                            }
+
+                            DataStoreRequest::GetCurrent {
+                                path,
+                                response_channel,
+                            } => {
+                                // get latest value
+                                todo!()
+                            }
+
+                            DataStoreRequest::List {
+                                path,
+                                response_channel,
+                            } => {
+                                // list subkeys that have values set or have subkeys with values set
+                                todo!()
+                            }
+
+                            DataStoreRequest::Set {
+                                path,
+                                value,
+                                response_channel,
+                            } => {
+                                // set value
+                                todo!()
+                            }
+
+                            DataStoreRequest::Delete {
+                                path,
+                                response_channel,
+                            } => {
+                                // set value to none
+                                todo!()
+                            }
+
+                            DataStoreRequest::Subscribe {
+                                path,
+                                notification_channel,
+                                response_channel,
+                            } => {
+                                // ???
+                                todo!()
+                            }
+
+                            DataStoreRequest::Unsubscribe {
+                                subscription_id,
+                                response_channel,
+                            } => {
+                                // remove from subscription list
+                                todo!()
+                            }
 
                             // handles ping requests
                             DataStoreRequest::Ping { response_channel } => {
                                 if let Some(response_channel) = response_channel {
-                                    response_channel.send(()).expect("Error occurred while replying to data store ping");
+                                    response_channel
+                                        .send(())
+                                        .expect("Error occurred while replying to data store ping");
                                 }
-                            },
+                            }
 
                             // handle shutdown requests
                             DataStoreRequest::Shutdown { response_channel } => {
-                                if let Some(response_channel) = response_channel {
-                                    response_channel.send(()).expect("Error occurred while acknowledging data store thread shutdown command");
-                                }
+                                shutdown_response = response_channel;
                                 break;
-                            },
+                            }
                         },
 
                         Err(recv_error) => match recv_error {
-                            RecvTimeoutError::Timeout => {},
+                            RecvTimeoutError::Timeout => {}
                             RecvTimeoutError::Disconnected => {
                                 // all senders got dropped, shutdown thread
                                 break;
-                            },
+                            }
                         },
                     }
                 }
 
-                // clean up
-                //TODO: commit changes to database here
+                // clean up and ensure database changes are committed
 
+                if let Some(response_channel) = shutdown_response {
+                    response_channel.send(()).expect(
+                        "Error occurred while acknowledging data store thread shutdown command",
+                    );
+                }
             })
             .expect("Failed to spawn data store thread");
 
@@ -224,14 +292,6 @@ impl<T: Serialize + DeserializeOwned + Send + Sync + 'static> DataStore<T> {
         todo!()
     }
 
-    pub async fn subscribe_timeout(&self, path: &[&str], timeout: Duration) -> Subscription<T> {
-        todo!()
-    }
-
-    pub async fn unsubscribe(&self, subscription_id: Uuid) {
-        todo!()
-    }
-
     /// Sends a ping and waits for a repsonse.
     /// Can be used to find current latency of the data store's request queue.
     pub async fn ping(&self) {
@@ -273,7 +333,7 @@ impl<T> Drop for DataStore<T> {
                 .take()
                 .unwrap()
                 .join()
-                .unwrap();
+                .expect("Error: datastore thread panicked");
         }
     }
 }
@@ -328,10 +388,10 @@ enum DataStoreRequest<T> {
     Subscribe {
         /// Path to subscribe to
         path: Vec<String>,
-        /// Subscription timeout
-        timeout: Option<Duration>,
+        /// Subscription notification channel
+        notification_channel: MPSCSender<Vec<Arc<Value<T>>>>,
         /// Response channel (sends subscription id)
-        response_channel: OneshotSender<SubscriptionRecord<T>>,
+        response_channel: OneshotSender<Uuid>,
     },
 
     /// Unsubscribes from changes for a path
@@ -376,7 +436,7 @@ pub struct Value<T> {
 pub struct Subscription<T> {
     pub id: Uuid,
     notification_channel: mpsc_async::Receiver<Arc<Value<T>>>,
-    data_store_channel: mpsc::Sender<DataStoreRequest<T>>,
+    datastore_channel: mpsc::Sender<DataStoreRequest<T>>,
 }
 
 impl<T> Subscription<T> {
@@ -391,7 +451,7 @@ impl<T> Subscription<T> {
 impl<T> Drop for Subscription<T> {
     fn drop(&mut self) {
         // Once subscription is dropped, cancel it
-        self.data_store_channel
+        self.datastore_channel
             .send(DataStoreRequest::Unsubscribe {
                 subscription_id: self.id,
                 response_channel: None,

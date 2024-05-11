@@ -18,8 +18,8 @@ pub struct Config {
     pub databases: DatabaseConfig,
 
     /// Datastore configuration
-    #[serde(default = "default_data_stores")]
-    pub data_stores: HashMap<String, DataStoreConfig>,
+    #[serde(default = "default_datastores")]
+    pub datastores: HashMap<String, DatastoreConfig>,
 
     /// Authentication configuration
     pub authentication: Option<AuthenticationConfig>,
@@ -110,14 +110,15 @@ pub struct DatabaseSchemaConfig {
 
 /// Data store configuration
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct DataStoreConfig {
+pub struct DatastoreConfig {
     /// Database schema for persisting data.
     /// If not set, data is not persisted to a database and will be lost at application shutdown.
     pub database_schema: Option<String>,
 
     /// Whether to keep history.
     /// If not set, the default (false) is used.
-    pub keep_history: Option<bool>,
+    #[serde(default)]
+    pub keep_history: bool,
 
     /// Maximum age in seconds of previous values to keep for each key.
     /// Age is determined by the time the value was set.
@@ -176,7 +177,7 @@ pub enum RouteConfig {
     /// Datastore
     Data {
         permissions: RoutePermissions,
-        data_store: Option<String>,
+        datastore: Option<String>,
     },
 
     /// Authentication endpoints
@@ -223,7 +224,7 @@ fn default_database() -> DatabaseConfig {
     }
 }
 
-fn default_data_stores() -> HashMap<String, DataStoreConfig> {
+fn default_datastores() -> HashMap<String, DatastoreConfig> {
     HashMap::new()
 }
 
